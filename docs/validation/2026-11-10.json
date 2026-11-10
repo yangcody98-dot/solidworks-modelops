@@ -1,0 +1,353 @@
+{
+  "date": "2026-11-10",
+  "version": "0.1.0",
+  "scope": "local pilot validation; not engineering certification or a cross-project benchmark",
+  "environment": {
+    "os": "Windows",
+    "python": "3.12.10",
+    "solidworks": "2025 SP2.0",
+    "solidworks_revision": "33.2.0"
+  },
+  "offline": {
+    "passed": 242,
+    "skipped": 1,
+    "skip_reason": "Windows host cannot create the real symlink fixture; simulated reparse rejection passed"
+  },
+  "mcp": {
+    "registered_tools": 41,
+    "modelops_tools": 4,
+    "protocol_check": "passed"
+  },
+  "native": {
+    "passed": true,
+    "cases": [
+      {
+        "id": "create_plate",
+        "passed": true,
+        "task_status": "passed",
+        "source_protection_passed": true,
+        "accepted_geometry": {
+          "body_count": 1,
+          "volume_mm3": 47095.22131576613,
+          "bbox_size_mm": [
+            100.0,
+            60.0,
+            8.0
+          ]
+        },
+        "oracle_checks": [
+          {
+            "name": "expected_status",
+            "passed": true
+          },
+          {
+            "name": "source_protection",
+            "passed": true
+          },
+          {
+            "name": "body_count",
+            "passed": true
+          },
+          {
+            "name": "analytic_volume",
+            "passed": true
+          },
+          {
+            "name": "bounds",
+            "passed": true
+          },
+          {
+            "name": "exact_hole_count",
+            "passed": true
+          },
+          {
+            "name": "hole_1_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_2_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_3_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_4_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "native_and_step_files",
+            "passed": true
+          },
+          {
+            "name": "fully_defined_parametric_sketches",
+            "passed": true
+          },
+          {
+            "name": "step_reopen",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "id": "edit_thickness",
+        "passed": true,
+        "task_status": "passed",
+        "source_protection_passed": true,
+        "accepted_geometry": {
+          "body_count": 1,
+          "volume_mm3": 70642.8319736492,
+          "bbox_size_mm": [
+            100.0,
+            60.0,
+            12.0
+          ]
+        },
+        "oracle_checks": [
+          {
+            "name": "expected_status",
+            "passed": true
+          },
+          {
+            "name": "source_protection",
+            "passed": true
+          },
+          {
+            "name": "body_count",
+            "passed": true
+          },
+          {
+            "name": "analytic_volume",
+            "passed": true
+          },
+          {
+            "name": "bounds",
+            "passed": true
+          },
+          {
+            "name": "exact_hole_count",
+            "passed": true
+          },
+          {
+            "name": "hole_1_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_2_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_3_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_4_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "native_and_step_files",
+            "passed": true
+          },
+          {
+            "name": "fully_defined_parametric_sketches",
+            "passed": true
+          },
+          {
+            "name": "step_reopen",
+            "passed": true
+          },
+          {
+            "name": "source_disk_unchanged",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "id": "recover_failed_edit",
+        "passed": true,
+        "task_status": "recovered",
+        "source_protection_passed": true,
+        "accepted_geometry": {
+          "body_count": 1,
+          "volume_mm3": 70642.83197364921,
+          "bbox_size_mm": [
+            100.0,
+            60.0,
+            12.0
+          ]
+        },
+        "oracle_checks": [
+          {
+            "name": "expected_status",
+            "passed": true
+          },
+          {
+            "name": "source_protection",
+            "passed": true
+          },
+          {
+            "name": "checkpoint_recovered",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_body_count",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_analytic_volume",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_bounds",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_exact_hole_count",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_hole_1_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_hole_2_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_hole_3_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "failed_edit_hole_4_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "recovered_body_count",
+            "passed": true
+          },
+          {
+            "name": "recovered_analytic_volume",
+            "passed": true
+          },
+          {
+            "name": "recovered_bounds",
+            "passed": true
+          },
+          {
+            "name": "recovered_exact_hole_count",
+            "passed": true
+          },
+          {
+            "name": "recovered_hole_1_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "recovered_hole_2_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "recovered_hole_3_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "recovered_hole_4_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "source_disk_unchanged",
+            "passed": true
+          }
+        ],
+        "rejected_geometry": {
+          "body_count": 1,
+          "volume_mm3": 82416.63730259078,
+          "bbox_size_mm": [
+            100.0,
+            60.0,
+            14.0
+          ]
+        },
+        "original_edit_task_succeeded": false
+      },
+      {
+        "id": "restore_checkpoint",
+        "passed": true,
+        "task_status": "passed",
+        "source_protection_passed": true,
+        "accepted_geometry": {
+          "body_count": 1,
+          "volume_mm3": 70642.8319736492,
+          "bbox_size_mm": [
+            100.0,
+            60.0,
+            12.0
+          ]
+        },
+        "oracle_checks": [
+          {
+            "name": "expected_status",
+            "passed": true
+          },
+          {
+            "name": "source_protection",
+            "passed": true
+          },
+          {
+            "name": "body_count",
+            "passed": true
+          },
+          {
+            "name": "analytic_volume",
+            "passed": true
+          },
+          {
+            "name": "bounds",
+            "passed": true
+          },
+          {
+            "name": "exact_hole_count",
+            "passed": true
+          },
+          {
+            "name": "hole_1_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_2_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_3_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "hole_4_axis_and_diameter",
+            "passed": true
+          },
+          {
+            "name": "native_and_step_files",
+            "passed": true
+          },
+          {
+            "name": "fully_defined_parametric_sketches",
+            "passed": true
+          },
+          {
+            "name": "step_reopen",
+            "passed": true
+          },
+          {
+            "name": "independent_process",
+            "passed": true
+          },
+          {
+            "name": "source_disk_unchanged",
+            "passed": true
+          }
+        ],
+        "independent_process_verified": true
+      }
+    ]
+  }
+}

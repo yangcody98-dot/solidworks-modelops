@@ -1,0 +1,3 @@
+# Offline validation and tests. Native Windows/COM dependencies are separate.
+pytest>=8,<10
+PyYAML>=6,<7

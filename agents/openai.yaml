@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks ModelOps"
+  short_description: "参数化建模、改尺寸、检查点恢复与回归验证"
+  default_prompt: "使用 $solidworks-modelops 在任务副本中建模或改尺寸，保存检查点并验证交付。"

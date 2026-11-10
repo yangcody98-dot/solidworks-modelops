@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "mode": "create",
+  "plan": {
+    "schema_version": 1,
+    "name": "measured_four_hole_plate",
+    "operations": [
+      {
+        "id": "outline",
+        "op": "sketch_rectangle",
+        "params": {
+          "plane": "Front Plane",
+          "cx_mm": 0,
+          "cy_mm": 0,
+          "width_mm": 100,
+          "height_mm": 60
+        }
+      },
+      {
+        "id": "stock",
+        "op": "extrude_boss",
+        "params": {
+          "sketch_id": "outline",
+          "depth_mm": 8
+        },
+        "expect": {
+          "body_count": 1,
+          "bbox_size_mm": [
+            100,
+            60,
+            8
+          ],
+          "volume_mm3": 48000,
+          "feature_ok": true
+        }
+      },
+      {
+        "id": "hole_sketch",
+        "op": "sketch_circles",
+        "params": {
+          "plane": "Front Plane",
+          "circles": [
+            {
+              "x_mm": -40,
+              "y_mm": -20,
+              "radius_mm": 3
+            },
+            {
+              "x_mm": 40,
+              "y_mm": -20,
+              "radius_mm": 3
+            },
+            {
+              "x_mm": -40,
+              "y_mm": 20,
+              "radius_mm": 3
+            },
+            {
+              "x_mm": 40,
+              "y_mm": 20,
+              "radius_mm": 3
+            }
+          ]
+        }
+      },
+      {
+        "id": "holes",
+        "op": "extrude_cut",
+        "params": {
+          "sketch_id": "hole_sketch",
+          "depth_mm": {
+            "from_context": "geometry.bbox_size_mm.2",
+            "scale": 1,
+            "offset_mm": 0
+          },
+          "through_all": true,
+          "reverse": false
+        },
+        "fallback_params": [
+          {
+            "reverse": true
+          }
+        ],
+        "expect": {
+          "body_count": 1,
+          "volume_mm3": 47095.221315766,
+          "volume_tolerance_mm3": 0.1,
+          "holes": [
+            {
+              "diameter_mm": 6,
+              "position_mm": [
+                -40,
+                -20,
+                0
+              ]
+            },
+            {
+              "diameter_mm": 6,
+              "position_mm": [
+                40,
+                -20,
+                0
+              ]
+            },
+            {
+              "diameter_mm": 6,
+              "position_mm": [
+                -40,
+                20,
+                0
+              ]
+            },
+            {
+              "diameter_mm": 6,
+              "position_mm": [
+                40,
+                20,
+                0
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "requirements": [
+      {
+        "bbox_size_mm": [
+          100,
+          60,
+          8
+        ],
+        "body_count": 1,
+        "volume_mm3": 47095.221315766,
+        "volume_tolerance_mm3": 0.1
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "mode": "restore",
+  "checkpoint_root": "C:/CAD/edit-001/checkpoints",
+  "checkpoint_id": "00000000000000000000000000000000",
+  "requirements": [
+    {
+      "body_count": 1,
+      "bbox_size_mm": [
+        100,
+        60,
+        12
+      ],
+      "volume_mm3": 70642.8319736492,
+      "volume_tolerance_mm3": 0.1
+    }
+  ]
+}

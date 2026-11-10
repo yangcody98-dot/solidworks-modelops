@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "mode": "edit",
+  "source": "C:/CAD/create-001/model_FROM_REPORT.sldprt",
+  "operations": [
+    {
+      "id": "thickness",
+      "op": "set_dimension",
+      "params": {
+        "name": "D1@Boss-Extrude1",
+        "value_mm": 12
+      },
+      "expect": {
+        "body_count": 1,
+        "bbox_size_mm": [
+          100,
+          60,
+          12
+        ],
+        "volume_mm3": 70642.8319736492,
+        "volume_tolerance_mm3": 0.1
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "body_count": 1,
+      "bbox_size_mm": [
+        100,
+        60,
+        12
+      ],
+      "volume_mm3": 70642.8319736492,
+      "volume_tolerance_mm3": 0.1
+    }
+  ]
+}

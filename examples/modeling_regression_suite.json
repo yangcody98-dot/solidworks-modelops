@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "name": "four_hole_plate_create_edit_recover",
+  "description": "同一四孔板的创建、厚度修改、错误验收后的恢复，以及独立进程检查点重开。所有CAD写入只针对本次新建文件。",
+  "fixture": {
+    "width_mm": 100,
+    "height_mm": 60,
+    "initial_thickness_mm": 8,
+    "edited_thickness_mm": 12,
+    "rejected_thickness_mm": 14,
+    "holes": [
+      {"x_mm": -40, "y_mm": -20, "radius_mm": 3},
+      {"x_mm": 40, "y_mm": -20, "radius_mm": 3},
+      {"x_mm": -40, "y_mm": 20, "radius_mm": 3},
+      {"x_mm": 40, "y_mm": 20, "radius_mm": 3}
+    ]
+  },
+  "tolerances": {
+    "volume_mm3": 0.1,
+    "bounds_mm": 0.05,
+    "hole_position_mm": 0.05,
+    "hole_diameter_mm": 0.05
+  },
+  "cases": [
+    {"id": "create_plate", "action": "create", "expected_status": "passed"},
+    {"id": "edit_thickness", "action": "edit", "source_case": "create_plate", "expected_status": "passed"},
+    {"id": "recover_failed_edit", "action": "failed_edit", "source_case": "edit_thickness", "expected_status": "recovered"},
+    {"id": "restore_checkpoint", "action": "restore", "source_case": "edit_thickness", "expected_status": "passed"}
+  ]
+}
