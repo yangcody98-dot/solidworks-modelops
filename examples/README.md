@@ -1,176 +1,217 @@
-# 示例代码
+# Examples
 
-本目录包含 SolidWorks 自动化的示例代码,从基础到高级逐步演示各种功能。
+This directory contains SolidWorks automation examples, progressing from basic parts to more advanced workflows.
 
-## 示例列表
+## Example list
 
 ### 01_basic_part.py
-创建基本零件 - 圆柱体
 
-**学习内容:**
-- 连接 SolidWorks
-- 创建新零件文档
-- 绘制草图(圆)
-- 拉伸特征
-- 保存文件
+Create a basic cylindrical part.
 
-**运行前提:**
-- SolidWorks 已运行
-- 确保 `C:\temp\` 目录存在
+**Topics:**
+
+- Connect to SolidWorks
+- Create a part document
+- Sketch a circle
+- Extrude a feature
+- Save the file
+
+**Prerequisites:**
+
+- SolidWorks is running
+- `C:\temp\` exists
 
 ---
 
 ### 02_complex_part.py
-创建复杂零件 - 带孔的矩形板
 
-**学习内容:**
-- 多个草图和特征
-- 切除拉伸(孔)
-- 倒角和圆角
-- 面选择
+Create a rectangular plate with holes.
 
-**运行前提:**
-- SolidWorks 已运行
+**Topics:**
+
+- Multiple sketches and features
+- Extruded cuts for holes
+- Chamfers and fillets
+- Face selection
+
+**Prerequisites:**
+
+- SolidWorks is running
 
 ---
 
 ### 03_assembly.py
-创建装配体
 
-**学习内容:**
-- 添加组件
-- 配合关系(重合、同心)
-- 获取组件列表
+Create an assembly.
 
-**运行前提:**
-- 需要准备两个零件文件:
+**Topics:**
+
+- Insert components
+- Coincident and concentric mates
+- List components
+
+**Prerequisites:**
+
+- Prepare two part files:
   - `C:\parts\base.sldprt`
   - `C:\parts\shaft.sldprt`
-- 或修改代码中的路径
+- Alternatively, adjust the paths in the script
 
 ---
 
 ### 04_batch_export.py
-批量导出文件
 
-**学习内容:**
-- 批量处理文件
-- 导出为 STEP 格式
-- 错误处理
+Export files in a batch.
 
-**运行前提:**
-- `C:\parts\` 目录下有 .sldprt 文件
-- 或修改代码中的路径
+**Topics:**
+
+- Batch file processing
+- STEP export
+- Error handling
+
+**Prerequisites:**
+
+- `.sldprt` files in `C:\parts\`
+- Alternatively, adjust the paths in the script
 
 ---
 
 ### 05_drawing.py
-创建工程图
 
-**学习内容:**
-- 创建工程图文档
-- 标准三视图
-- 自动标注尺寸
-- 添加注释
-- 导出 PDF
+Create a drawing.
 
-**运行前提:**
-- 需要一个零件文件: `C:\parts\mypart.sldprt`
-- 或修改代码中的路径
+**Topics:**
+
+- Create a drawing document
+- Standard three-view drawing
+- Automatic dimensions
+- Notes
+- PDF export
+
+**Prerequisites:**
+
+- A part file at `C:\parts\mypart.sldprt`
+- Alternatively, adjust the path in the script
 
 ---
 
 ### 06_friendly_api.py
-使用更顺手的 `SolidWorksSession` API 创建并导出零件
 
-**学习内容:**
-- 使用 `SolidWorksSession` 新建、保存、导出文件
-- 使用 `with sketch(...)` 自动进入/退出草图
-- 减少硬编码草图名和重复路径处理
+Create and export a part through the `SolidWorksSession` API.
 
-**运行前提:**
-- SolidWorks 已运行，或允许脚本启动 SolidWorks
-- 确保 `C:\temp\` 目录可写
+**Topics:**
+
+- Create, save, and export with `SolidWorksSession`
+- Enter and exit sketches with `with sketch(...)`
+- Reduce hard-coded sketch names and repeated path handling
+
+**Prerequisites:**
+
+- SolidWorks is running, or the script may launch it
+- `C:\temp\` is writable
 
 ---
 
 ### 07_motion_study_rotary_motor.py
-给已有风扇装配体添加 Motion Study 旋转马达
 
-**学习内容:**
-- 创建并激活 Motion Study
-- 加载 Motion Study 类型库
-- 通过轴/叶轮圆柱面添加 60RPM 匀速旋转马达
-- 计算并播放运动算例
+Add a Motion Study rotary motor to an existing fan assembly.
 
-**运行前提:**
-- 需要一个已有风扇装配体
-- 叶轮同心 Mate 未锁定旋转，且叶轮组件未固定
-- 修改脚本中的 `assembly_path` 和组件名关键字
+**Topics:**
+
+- Create and activate a Motion Study
+- Load the Motion Study type library
+- Add a constant-speed 60RPM motor using shaft or impeller cylindrical faces
+- Calculate and play the study
+
+**Prerequisites:**
+
+- An existing fan assembly
+- The impeller's concentric mate allows rotation and its component is not fixed
+- Adjust `assembly_path` and the component-name keywords in the script
 
 ---
 
 ### 08_mini_fan_motion_assembly.py
-自动生成桌面迷你散热风扇基准装配体
 
-**学习内容:**
-- 依次生成底座、中心立柱、带叶片叶轮、圆形防护前盖 4 个零件
-- 自动新建装配体并添加组件
-- 添加重合 Mate、同心 Mate，并保持叶轮同心 Mate 不锁旋转
-- 固定底座、立柱、前盖，叶轮保持浮动
-- 创建 Motion Study，添加 60RPM 匀速旋转马达
-- 导出自审查报告
+Generate a desktop mini-fan benchmark assembly.
 
-**运行前提:**
-- SolidWorks 已运行，或允许脚本启动 SolidWorks
-- `C:\temp\solidworks_mini_fan_demo\` 可写
+**Topics:**
 
-**说明:**
-- 该示例是稳定性基准，不是外观最终版。
-- 圆角/倒角没有作为成功标准；边线自动选择在不同版本和语言环境下不稳定，后续应单独优化实体选择策略。
+- Create four parts: base, center post, bladed impeller, and circular front guard
+- Create an assembly and insert the components
+- Add coincident and concentric mates, leaving impeller rotation unlocked
+- Fix the base, post, and guard while leaving the impeller floating
+- Create a Motion Study and add a constant-speed 60RPM rotary motor
+- Export a review report
+
+**Prerequisites:**
+
+- SolidWorks is running, or the script may launch it
+- `C:\temp\solidworks_mini_fan_demo\` is writable
+
+**Notes:**
+
+- This is a stability benchmark, not a finished appearance model.
+- Fillets and chamfers are not acceptance criteria. Automatic edge selection varies by version and language; improve that selection strategy separately.
 
 ---
 
-## 运行示例
+### 09_xy_stage_visual_demo.py
 
-1. 确保已安装依赖:
+Build the independent 226-component XY positioning stage shown on the repository homepage. Geometry is generated with OCCT/OCP, exported as a colored STEP assembly, then imported and previewed in SolidWorks. This static visual example is separate from the unified executor's part benchmark.
+
+Run from the repository root with a new output directory. Install `requirements-occt.txt` as well as the regular dependencies; preview rendering also requires Pillow and an open, licensed SolidWorks session. See [SHOWCASE.md](../docs/SHOWCASE.md) for commands, provenance, and the recorded checks.
+
+---
+
+## Run an example
+
+1. Install the dependencies:
+
 ```bash
 pip install pywin32
 ```
 
-2. 启动 SolidWorks
+2. Start SolidWorks.
+3. Run the example:
 
-3. 运行示例:
 ```bash
 python 01_basic_part.py
 ```
 
-## 修改路径
+## Adjust paths
 
-所有示例中的文件路径都可以根据你的实际情况修改:
+Change the file paths to match your environment:
 
 ```python
-# 修改输入路径
+# Input path
 part_path = r"C:\your\path\part.sldprt"
 
-# 修改输出路径
+# Output path
 output_path = r"C:\your\output\file.step"
 ```
 
-## 常见问题
+## Troubleshooting
 
-### 无法连接 SolidWorks?
-确保 SolidWorks 已经运行,并且 Python 位数与 SolidWorks 一致(通常为 64 位)。
+### Cannot connect to SolidWorks
 
-### 找不到基准面?
-中英文版本的基准面名称不同:
-- 英文: "Front Plane", "Top Plane", "Right Plane"
-- 中文: "前视基准面", "上视基准面", "右视基准面"
+Check that SolidWorks is running and Python has the same architecture, usually 64-bit.
 
-### 特征创建失败?
-检查:
-1. 草图是否闭合
-2. 单位是否正确(使用 `mm()` 函数)
-3. 实体选择是否正确
+### Reference plane not found
 
-更多问题请查看 [troubleshooting.md](../references/troubleshooting.md)
+English and Chinese installations use different plane names:
+
+- English: "Front Plane", "Top Plane", "Right Plane"
+- Chinese object-name literals: `"前视基准面"`, `"上视基准面"`, `"右视基准面"`
+
+These Chinese strings are native selection names and must match the installed interface language.
+
+### Feature creation fails
+
+Check:
+
+1. The sketch is closed.
+2. Units are correct; use `mm()`.
+3. The intended entities are selected.
+
+For more details, read [troubleshooting.md](../references/troubleshooting.md).

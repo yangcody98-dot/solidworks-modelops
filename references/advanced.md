@@ -1,158 +1,158 @@
-# 高级功能参考
+# Advanced feature reference
 
-## 目录
+## Contents
 
-- [自定义属性](#自定义属性)
-- [设计表与配置](#设计表与配置)
-- [钣金设计](#钣金设计)
-- [焊件设计](#焊件设计)
-- [曲面建模](#曲面建模)
-- [仿真/FEA](#仿真fea)
+- [Custom properties](#custom-properties)
+- [Design tables and configurations](#design-tables-and-configurations)
+- [Sheet metal](#sheet-metal)
+- [Weldments](#weldments)
+- [Surface modeling](#surface-modeling)
+- [Simulation/FEA](#simulationfea)
 
 ---
 
-## 自定义属性
+## Custom properties
 
 ```python
-# 获取属性管理器
-# 空字符串 = 文件级属性，配置名 = 配置特定属性
+# Get the property manager
+# Empty string = file-level properties; configuration name = configuration-specific properties
 props = model.Extension.CustomPropertyManager("")
 
-# 读取属性
+# Read a property
 val = ""
 resolved = ""
 was_resolved = False
 is_linked = False
 result = props.Get6("Description", False, val, resolved, was_resolved, is_linked)
-# resolved 包含解析后的值
+# resolved contains the evaluated value
 
-# 写入/更新属性
-# 类型: 30=文本, 2=数字, 11=Yes/No, 64=日期
-props.Add3("Description", 30, "主轴零件 Rev A", 1)  # 1=覆盖
+# Write or update properties
+# Types: 30=text, 2=number, 11=Yes/No, 64=date
+props.Add3("Description", 30, "Spindle part Rev A", 1)  # 1=overwrite
 props.Add3("Material", 30, "Steel 1045", 1)
 props.Add3("Weight", 2, "2.5", 1)
 props.Add3("PartNumber", 30, "PN-001-001", 1)
 
-# 删除属性
+# Delete a property
 props.Delete2("OldProperty")
 
-# 获取所有属性名称
+# Get all property names
 count = props.Count
 names = props.GetNames()
 ```
 
-## 设计表与配置
+## Design tables and configurations
 
-### 配置管理
+### Configuration management
 
 ```python
-# 获取所有配置名称
+# Get all configuration names
 config_names = model.GetConfigurationNames()
 
-# 激活配置
+# Activate a configuration
 model.ShowConfiguration2(configName)
 
-# 获取配置对象
+# Get a configuration object
 config = model.GetConfigurationByName(configName)
 
-# 添加新配置
+# Add a configuration
 config_mgr = model.ConfigurationManager
 new_config = config_mgr.AddConfiguration2(
-    "NewConfig",    # 名称
-    "描述",          # 描述
-    "",             # 替代名称
-    0,              # 选项
-    "",             # 父配置
-    "",             # 描述2
-    True            # 使用所有参数
+    "NewConfig",    # Name
+    "Description",  # Description
+    "",             # Alternate name
+    0,              # Options
+    "",             # Parent configuration
+    "",             # Description 2
+    True            # Use all parameters
 )
 
-# 修改配置中的尺寸
+# Change a dimension in a configuration
 model.ShowConfiguration2("Config1")
 dim = model.Parameter("D1@Boss-Extrude1")
-dim.SystemValue = 0.05  # 50mm（单位: 米）
+dim.SystemValue = 0.05  # 50 mm (units: meters)
 model.EditRebuild3()
 ```
 
-### 设计表
+### Design tables
 
 ```python
-# 插入设计表（从 Excel）
+# Insert a design table from Excel
 design_table = model.InsertFamilyTableOpen(excelFilePath)
 
-# 编辑完成后关闭
+# Close after editing
 model.CloseFamilyTable()
 
-# 更新设计表
+# Update the design table
 model.InsertFamilyTableEdit()
 ```
 
-## 钣金设计
+## Sheet metal
 
-### 基本操作
+### Basic operations
 
 ```python
-# 钣金相关特征通过 FeatureManager 创建
-# 1. 基体法兰
+# Create sheet-metal features through FeatureManager
+# 1. Base flange
 feature_mgr.InsertSheetMetalBaseFlange2(
-    Thickness,    # float: 板厚（米）
-    BendRadius,   # float: 折弯半径（米）
+    Thickness,    # float: sheet thickness (meters)
+    BendRadius,   # float: bend radius (meters)
     ...
 )
 
-# 2. 边线法兰
+# 2. Edge flange
 feature_mgr.InsertSheetMetalEdgeFlange2(...)
 
-# 3. 斜接法兰
+# 3. Miter flange
 feature_mgr.InsertSheetMetalMiterFlange(...)
 
-# 4. 展开
+# 4. Unfold
 feature_mgr.InsertSheetMetalFlatPattern2()
 
-# 5. 折叠
+# 5. Fold
 feature_mgr.InsertSheetMetalFold()
 ```
 
-### 展开图导出
+### Flat-pattern export
 
 ```python
-# 导出展开图为 DXF
+# Export the flat pattern to DXF
 model.ExportToDWG2(
-    dxfPath,           # str: 输出路径
-    modelPath,         # str: 模型路径（或空字符串）
-    1,                 # int: 导出类型（1=展开图）
-    True,              # bool: 显示外轮廓
-    True,              # bool: 包含弯曲线
-    False,             # bool: 草图实体
-    False,             # bool: 隐藏边线
-    0,                 # int: 弯曲注释
-    None               # variant: 导出数据
+    dxfPath,           # str: output path
+    modelPath,         # str: model path (or an empty string)
+    1,                 # int: export type (1=flat pattern)
+    True,              # bool: show outer outline
+    True,              # bool: include bend lines
+    False,             # bool: sketch entities
+    False,             # bool: hidden edges
+    0,                 # int: bend annotations
+    None               # variant: export data
 )
 ```
 
-### 钣金参数
+### Sheet-metal parameters
 
 ```python
-# 获取钣金特征数据
+# Get sheet-metal feature data
 feat = model.FeatureByName("Sheet-Metal1")
 sheet_metal_data = feat.GetDefinition()
-thickness = sheet_metal_data.Thickness    # 板厚
-bend_radius = sheet_metal_data.BendRadius # 折弯半径
+thickness = sheet_metal_data.Thickness    # Sheet thickness
+bend_radius = sheet_metal_data.BendRadius # Bend radius
 ```
 
-## 焊件设计
+## Weldments
 
-### 切割清单
+### Cut lists
 
 ```python
 def get_cut_list(model):
-    """遍历焊件切割清单"""
+    """Traverse the weldment cut list."""
     feat = model.FirstFeature()
     items = []
     while feat:
         if feat.GetTypeName2() == "CutListFolder":
             props = feat.CustomPropertyManager
-            # 读取属性
+            # Read properties
             qty_val = ""
             qty_resolved = ""
             props.Get6("QUANTITY", False, qty_val, qty_resolved, False, False)
@@ -170,83 +170,83 @@ def get_cut_list(model):
     return items
 ```
 
-### 结构构件
+### Structural members
 
 ```python
-# 插入结构构件（焊件型材）
+# Insert a structural member using a weldment profile
 feature_mgr.InsertStructuralWeldment5(
-    ProfilePath,   # str: 型材文件路径（.sldlfp）
+    ProfilePath,   # str: profile file path (.sldlfp)
     ...
 )
 ```
 
-## 曲面建模
+## Surface modeling
 
 ```python
-# 拉伸曲面
+# Extruded surface
 feature_mgr.InsertExtrudedSurface(depth, flip, dir, t1, t2, d1, d2)
 
-# 旋转曲面
+# Revolved surface
 feature_mgr.InsertRevolvedRefSurface(...)
 
-# 放样曲面
+# Lofted surface
 feature_mgr.InsertLoftRefSurface2(...)
 
-# 扫描曲面
+# Swept surface
 feature_mgr.InsertSweepRefSurface(...)
 
-# 平面区域
+# Planar region
 feature_mgr.InsertPlanarRefSurface()
 
-# 修剪曲面
+# Trimmed surface
 feature_mgr.InsertTrimSurface2(...)
 
-# 缝合曲面
+# Knit surfaces
 feature_mgr.InsertSewRefSurface(True, False, 0.001)
 
-# 曲面加厚为实体
+# Thicken a surface into a solid
 feature_mgr.InsertThickenSheet(thickness, False, True)
 ```
 
-## 仿真/FEA
+## Simulation/FEA
 
-> 需要安装 SolidWorks Simulation 插件
+> Requires the SolidWorks Simulation add-in.
 
 ```python
-# 获取 Simulation 插件
+# Get the Simulation add-in
 cos_works = sw.GetAddInObject("SldWorks.Simulation")
 if not cos_works:
-    print("Simulation 插件未安装或未激活")
+    print("Simulation add-in is not installed or active")
 
 study_mgr = cos_works.StudyManager
 
-# 创建静态分析算例
+# Create a static study
 study = study_mgr.CreateStudy(
     model,
     "StaticStudy1",
     0  # 0=Static, 1=Frequency, 2=Buckling, 3=Thermal, 5=Fatigue
 )
 
-# 添加材料（通过 SolidBody）
-# 添加约束（Fixed, Roller/Slider, Prescribed）
-# 添加载荷（Force, Pressure, Gravity, Torque）
+# Assign material through SolidBody
+# Add restraints (Fixed, Roller/Slider, Prescribed)
+# Add loads (Force, Pressure, Gravity, Torque)
 
-# 运行分析
+# Run the analysis
 study.RunAnalysis()
 
-# 获取结果
+# Read results
 results = study.Results
-# 应力、位移、安全系数等
+# Stress, displacement, factor of safety, and other results
 ```
 
-### 算例类型
+### Study types
 
-| 值 | 类型 | 说明 |
+| Value | Type | Description |
 |---|---|---|
-| 0 | Static | 静态分析 |
-| 1 | Frequency | 频率分析 |
-| 2 | Buckling | 屈曲分析 |
-| 3 | Thermal | 热分析 |
-| 4 | Drop Test | 跌落测试 |
-| 5 | Fatigue | 疲劳分析 |
-| 6 | Nonlinear | 非线性分析 |
+| 0 | Static | Static analysis |
+| 1 | Frequency | Frequency analysis |
+| 2 | Buckling | Buckling analysis |
+| 3 | Thermal | Thermal analysis |
+| 4 | Drop Test | Drop test |
+| 5 | Fatigue | Fatigue analysis |
+| 6 | Nonlinear | Nonlinear analysis |

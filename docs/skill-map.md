@@ -1,53 +1,58 @@
-# SolidWorks ModelOps 技能与入口映射
+# SolidWorks ModelOps skill and entry point map
 
-本仓库的根 skill 为 `solidworks-modelops`，统一入口是 `scripts/sw_modeling.py`。
-v0.1 为 pilot：基础零件创建、任务副本中的命名线性尺寸修改、磁盘检查点与新副本恢复。
-继承的专项脚本保留各自的验证边界，不自动获得统一入口的检查点或恢复保证。
+The root skill is `solidworks-modelops`, with `scripts/sw_modeling.py` as its unified entry point.
+v0.1 is pilot: basic part creation, named linear dimension edits in task-owned copies, disk checkpoints,
+and recovery to new copies. Inherited specialist scripts retain their own validation limits and do not
+automatically receive the unified interface's checkpoint or recovery guarantees.
 
-## 根入口
+## Root entry points
 
-| 文件 | 职责 |
+| File | Responsibility |
 | --- | --- |
-| [SKILL.md](../SKILL.md) | AI Agent 路由、写入边界与验收约定 |
-| [README.md](../README.md) | 安装、完整 CLI、支持范围与测试说明 |
-| [agents/openai.yaml](../agents/openai.yaml) | 根 skill 的 Agent 展示与默认提示 |
-| [scripts/sw_modeling.py](../scripts/sw_modeling.py) | `validate`、`run`、`inspect`、`checkpoints` |
-| [scripts/sw_checkpoints.py](../scripts/sw_checkpoints.py) | 检查点发布、文件 hash 核验与复制恢复 |
-| [scripts/sw_modeling_regression.py](../scripts/sw_modeling_regression.py) | 创建、修改、失败恢复、独立进程重开的同题回归 |
-| [capabilities.yaml](../capabilities.yaml) | 各能力等级、限制与证据范围 |
+| [SKILL.md](../SKILL.md) | Agent routing, write boundaries, and acceptance requirements |
+| [README.md](../README.md) | Installation, complete CLI, scope, and tests |
+| [agents/openai.yaml](../agents/openai.yaml) | Skill display metadata and default prompt |
+| [scripts/sw_modeling.py](../scripts/sw_modeling.py) | `validate`, `run`, `inspect`, `checkpoints` |
+| [scripts/sw_checkpoints.py](../scripts/sw_checkpoints.py) | Checkpoint publication, file hash verification, and copy-based recovery |
+| [scripts/sw_modeling_regression.py](../scripts/sw_modeling_regression.py) | Regression suite for create, edit, failure recovery, and independent-process reopening |
+| [capabilities.yaml](../capabilities.yaml) | Capability levels, limitations, and evidence scope |
 
-请求示例为 [create](../examples/modeling_create.json)、[edit](../examples/modeling_edit.json)、
-[restore](../examples/modeling_restore.json)。编辑和恢复示例需要填入实际源文件/检查点信息；
-[回归 suite](../examples/modeling_regression_suite.json) 会关联本次生成的测试工件。
+Example requests: [create](../examples/modeling_create.json), [edit](../examples/modeling_edit.json),
+and [restore](../examples/modeling_restore.json). Fill the edit and restore examples with actual source
+and checkpoint information. The [regression suite](../examples/modeling_regression_suite.json) links
+the fixtures generated during its run.
 
-## 复用层与专项
+## Shared modules and specialist workflows
 
-| 模块或子技能 | 使用场景 | 与统一入口的关系 |
+| Module or subskill | Use | Relationship to the unified interface |
 | --- | --- | --- |
-| `sw_closed_loop` / `sw_closed_loop_native` | 四动作计划、有限反馈、任务自有原生零件 | create 复用执行引擎与原生适配器 |
-| `sw_document_data` | 精确尺寸名称与回读 | edit 复用尺寸更新，额外执行归属和验收检查 |
-| `sw_sketch_constraints` | 普通及吸收子草图、尺寸和关系证据 | 供交付和恢复审查使用 |
-| [solidworks-vibecad](../subskills/solidworks-vibecad/SKILL.md) | 自然语言需求转参数化计划 | 按需规划；超出四动作范围不能直接交给统一执行器 |
-| [solidworks-fillet-chamfer-cnc](../subskills/solidworks-fillet-chamfer-cnc/SKILL.md) | 多圆角/倒角 CNC 零件 | 独立专项流程，按能力清单与实际报告复核 |
-| [solidworks-threaded-holes](../subskills/solidworks-threaded-holes/SKILL.md) | 螺纹孔与螺纹表达 | 独立专项；区分装饰、参考线和实体牙型 |
-| [autocad-automation](../subskills/autocad-automation/SKILL.md) | AutoCAD 与二维交付 | 继承专项，不属于 ModelOps 的原生零件事务接口 |
+| `sw_closed_loop` / `sw_closed_loop_native` | Four-operation plans, bounded feedback, task-owned native parts | Create reuses the execution engine and native adapter |
+| `sw_document_data` | Exact dimension names and readback | Edit reuses dimension updates and adds ownership and acceptance checks |
+| `sw_sketch_constraints` | Ordinary and absorbed sketches, dimension and relation evidence | Supports delivery and recovery review |
+| [solidworks-vibecad](../subskills/solidworks-vibecad/SKILL.md) | Natural-language requests to parametric plans | Use for planning; plans beyond the four-operation scope cannot go directly to the unified executor |
+| [solidworks-fillet-chamfer-cnc](../subskills/solidworks-fillet-chamfer-cnc/SKILL.md) | CNC parts with many fillets/chamfers | Separate workflow; review its capability entry and actual reports |
+| [solidworks-threaded-holes](../subskills/solidworks-threaded-holes/SKILL.md) | Threaded holes and thread representation | Separate workflow; distinguish cosmetic, reference-curve, and solid threads |
+| [autocad-automation](../subskills/autocad-automation/SKILL.md) | AutoCAD and 2D delivery | Inherited specialist workflow outside the native-part transaction interface |
 
-统一入口以外的装配、Motion、工程图、FEA 等任务，按根 skill 的专项路由选择文档，
-并回读 [capabilities.yaml](../capabilities.yaml) 的限制。不能因为存在参考文档就把能力记为已完成。
+For assembly, Motion, drawing, FEA, and other tasks outside the unified interface, follow the root skill's
+specialist routing and check the limits in [capabilities.yaml](../capabilities.yaml). A reference document's
+presence is not evidence that its capability has been implemented or validated.
 
-## 检查与扩展
+## Checks and extension
 
-执行 `python scripts/validate_skill.py` 检查必需文件、根 skill 元数据及 Python/JSON 语法；
-离线 pytest 和原生回归的具体命令见 [README.md](../README.md)。这些检查分别报告，
-文件完整或离线测试通过不能代替本机 SolidWorks 建模证据。
+Run `python scripts/validate_skill.py` to check required files, root skill metadata, and Python/JSON syntax.
+See [README.md](../README.md) for offline pytest and native regression commands. Report these checks
+separately: package completeness and offline results do not establish native SolidWorks modeling success.
 
-增加新的统一动作时，先定义 JSON 校验与可测量验收条件，再补任务归属、检查点与失败恢复行为，
-添加离线和原生回归案例，最后更新根 SKILL、README、能力清单和本文。
-增加独立专项时，将实现和资源置于 `subskills/<name>/` 并更新同一组现有入口文件；
-本仓库不依赖 `SUBSKILLS.md` 或 `project.yaml` 作为注册入口。
+To add a unified operation, define its JSON validation and measurable acceptance criteria, implement
+ownership, checkpoint, and failure recovery behavior, add offline and native regression cases, then
+update the root SKILL, README, capability registry, and this map. Put independent specialist implementations
+and resources in `subskills/<name>/` and update the same entry files. This repository does not use
+`SUBSKILLS.md` or `project.yaml` as registration entry points.
 
-## 继承资料
+## Inherited references
 
-[上游自动化指南](../references/upstream-automation-guide.md)、CAD Studio 产品说明与桌面原型
-用于保留技术上下文。其名称、发布流程或主页描述的是上游项目，不能作为本项目的下载或安装入口。
-来源和许可见 [NOTICE.md](../NOTICE.md)。
+The [upstream automation guide](../references/upstream-automation-guide.md), CAD Studio product documents,
+and desktop prototype retain technical context. Their names, release workflows, and homepages describe
+the upstream project and are not download or installation entry points for ModelOps.
+See [NOTICE.md](../NOTICE.md) for provenance and licensing.

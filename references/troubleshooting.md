@@ -1,46 +1,46 @@
-# 常见问题排查
+# Troubleshooting
 
-## 连接问题
+## Connection problems
 
-### 无法连接到 SolidWorks
+### Cannot connect to SolidWorks
 
 ```
-错误: pywintypes.com_error: (-2147221005, '无效的类字符串', None, None)
+Error: pywintypes.com_error: (-2147221005, 'Invalid class string', None, None)
 ```
 
-**原因**: SolidWorks 未安装或 COM 未注册
-**解决**: 确认 SolidWorks 已安装，尝试指定版本号连接：
+**Cause**: SolidWorks is not installed or its COM server is not registered.
+**Resolution**: Confirm installation and try connecting to a specific version:
 ```python
 sw = win32com.client.Dispatch("SldWorks.Application.32")  # SW 2024
 ```
 
-### GetActiveObject 失败
+### GetActiveObject fails
 
 ```
-错误: pywintypes.com_error: (-2147221021, '操作不可用', None, None)
+Error: pywintypes.com_error: (-2147221021, 'Operation unavailable', None, None)
 ```
 
-**原因**: SolidWorks 未运行
-**解决**: 先手动启动 SolidWorks，或使用 `Dispatch` 启动新实例
+**Cause**: SolidWorks is not running.
+**Resolution**: Start SolidWorks manually, or use `Dispatch` when launching a new instance is authorized.
 
-### Python 32/64 位不匹配
+### Python 32/64-bit mismatch
 
-**原因**: Python 位数必须与 SolidWorks 一致（通常为 64 位）
-**解决**: 安装 64 位 Python
+**Cause**: Python must match the SolidWorks architecture, normally 64-bit.
+**Resolution**: Install 64-bit Python.
 
-## 类型错误
+## Type errors
 
-### COM 伪可调用属性导致“找不到成员”
+### Apparently callable COM properties report member not found
 
-场景：遍历特征树或读取模型摘要时，`FirstFeature`、`GetNextFeature`、`GetTitle` 等成员在 pywin32 中显示 `callable=True`，但调用后报：
+Symptom: during feature traversal or model summaries, pywin32 reports `callable=True` for members such as `FirstFeature`, `GetNextFeature`, and `GetTitle`, but invoking them returns:
 
 ```text
-(-2147352573, '找不到成员。', None, None)
+(-2147352573, 'Member not found.', None, None)
 ```
 
-原因：SolidWorks 某些 COM 成员在动态派发下既可能表现为属性，也可能表现为方法；`callable(member)` 不能作为唯一判断。
+Cause: under dynamic dispatch, some SolidWorks COM members can appear as either properties or methods. `callable(member)` is not a sufficient discriminator.
 
-稳定写法：优先使用 `sw_connect.get_com_member()` 或 `sw_assembly.safe_get_com_member()`。
+Stable approach: prefer `sw_connect.get_com_member()` or `sw_assembly.safe_get_com_member()`.
 
 ```python
 from sw_connect import get_com_member
@@ -51,20 +51,20 @@ while feature:
     feature = get_com_member(feature, "GetNextFeature")
 ```
 
-### Motion Study 成员“找不到成员”
+### Motion Study members report member not found
 
-场景：`model.Extension.GetMotionStudyManager()` 或 `motion_mgr.CreateMotionStudy()` 报：
+Symptom: `model.Extension.GetMotionStudyManager()` or `motion_mgr.CreateMotionStudy()` returns:
 
 ```text
-(-2147352573, '找不到成员。', None, None)
+(-2147352573, 'Member not found.', None, None)
 ```
 
-常见原因：
+Common causes:
 
-1. Motion Study 的强类型接口位于 `swmotionstudy.tlb`，不是主 `sldworks` 类型库。
-2. pywin32 动态派发下，`GetMotionStudyManager`、`CreateMotionStudy`、`Activate`、`Calculate`、`Play` 可能表现为属性，不是方法。
+1. Strongly typed Motion Study interfaces live in `swmotionstudy.tlb`, not the main `sldworks` type library.
+2. Under dynamic pywin32 dispatch, `GetMotionStudyManager`, `CreateMotionStudy`, `Activate`, `Calculate`, and `Play` may be properties rather than methods.
 
-稳定写法：优先使用 `sw_motion.py`。
+Stable approach: prefer `sw_motion.py`.
 
 ```python
 from sw_motion import create_motion_study, motion_member
@@ -73,7 +73,7 @@ study = create_motion_study(asm, name="Motion_60RPM", duration=4.0)
 calculated = motion_member(study, "Calculate")
 ```
 
-如果必须底层调用，先加载类型库：
+If low-level calls are required, load the type library first:
 
 ```python
 from sw_motion import ensure_motion_type_library
@@ -83,13 +83,13 @@ motion_mgr = asm.Extension.GetMotionStudyManager
 study = motion_mgr.CreateMotionStudy
 ```
 
-### SelectByID2 类型不匹配
+### SelectByID2 type mismatch
 
 ```
-错误: TypeError: Objects of type 'NoneType' can not be converted to a COM VARIANT
+Error: TypeError: Objects of type 'NoneType' can not be converted to a COM VARIANT
 ```
 
-**解决**: 对 Callout 参数使用显式 VARIANT：
+**Resolution**: Pass an explicit VARIANT for the Callout argument:
 ```python
 from win32com.client import VARIANT
 import pythoncom
@@ -97,21 +97,21 @@ callout = VARIANT(pythoncom.VT_DISPATCH, None)
 model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, callout, 0)
 ```
 
-### by-ref 参数错误
+### by-ref argument errors
 
-**解决**: 使用 VARIANT 包装输出参数：
+**Resolution**: Wrap output arguments in VARIANT:
 ```python
 errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
 warnings = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
 ```
 
-### Pack and Go 获取对象时报缺少参数
+### Pack and Go reports a missing argument when obtaining its object
 
-场景：`model.Extension.GetPackAndGo()` 或强类型 `IModelDocExtension.GetPackAndGo()` 报缺少必要参数，但官方 API 和 Interop 反射都显示它是零参数返回 `IPackAndGo`。
+Symptom: `model.Extension.GetPackAndGo()` or strongly typed `IModelDocExtension.GetPackAndGo()` reports a required argument is missing, although official API documentation and Interop reflection show zero arguments and an `IPackAndGo` return.
 
-原因：本机 SW2024/2026 + pywin32 运行时对象会把 `[out, retval] IPackAndGo**` 编组错位。实测官方零参数动态调用和显式 `VT_BYREF | VT_DISPATCH` 都可能拿不到返回指针。
+Cause: local SW2024/2026 pywin32 runtime objects can mis-marshal `[out, retval] IPackAndGo**`. Both the official zero-argument dynamic call and explicit `VT_BYREF | VT_DISPATCH` have failed to obtain the return pointer in historical tests.
 
-稳定写法：优先使用 `sw_delivery.pack_and_go()`。封装会先尝试 pywin32 官方零参数调用；若 pywin32 抛出签名错误，再使用 `comtypes` 早绑定调用原生 `IModelDocExtension.GetPackAndGo()` / `SavePackAndGo()`。
+Stable approach: use `sw_delivery.pack_and_go()`. It first tries the official zero-argument pywin32 call, then uses early-bound `comtypes` for native `IModelDocExtension.GetPackAndGo()` / `SavePackAndGo()` on signature failure.
 
 ```python
 from sw_delivery import pack_and_go
@@ -120,36 +120,36 @@ report = pack_and_go(assembly, r"E:\\delivery\\pack_and_go", flatten=True)
 assert report["success"], report
 ```
 
-### Pack and Go 只输出顶层装配体
+### Pack and Go writes only the top-level assembly
 
-场景：`IModelDoc2.GetDependencies2()` 能返回装配体引用的 `.SLDPRT`，但 `IPackAndGo.GetDocumentNames()` 只有顶层 `.SLDASM`，保存后交付包也只有装配文件。
+Symptom: `IModelDoc2.GetDependencies2()` lists referenced `.SLDPRT` files, but `IPackAndGo.GetDocumentNames()` lists only the `.SLDASM`, and the saved package contains only the assembly.
 
-处理：不要把保存前枚举直接当作最终产物，也不要用 `AddExternalDocuments` 补装配体原生零件。`sw_delivery.pack_and_go()` 会先执行原生 `SavePackAndGo()`，再按本轮实际落盘文件审计依赖；SW2026 SP01.1 的基础两零件装配已连续三次输出完整的 1 个装配体和 2 个零件。若实际落盘仍缺依赖，默认策略生成明确标记的 `pilot` 暂存包，严格策略返回 `status=blocked` 和 `SW_PACK_AND_GO_DEPENDENCY_ENUMERATION_INCOMPLETE`；两者都必须保留缺失证据并人工复核。
+Resolution: do not treat pre-save enumeration as the actual package or add native assembly parts through `AddExternalDocuments`. `sw_delivery.pack_and_go()` first calls native `SavePackAndGo()`, then audits this run's files. A basic two-part assembly produced one assembly and two parts in three historical SW2026 SP01.1 runs. If dependencies still go missing, the default returns an explicitly marked `pilot` staged package; strict mode returns `status=blocked` and `SW_PACK_AND_GO_DEPENDENCY_ENUMERATION_INCOMPLETE`. Both paths must retain missing-dependency evidence and require human review.
 
-### STL 导出了当前装配体而不是目标零件
+### STL exports the active assembly instead of the target part
 
-场景：`IModelDocExtension.SaveAs()` 返回成功，但目标零件名的 STL 不存在，目录中反而出现
-`零件名 - 装配组件名.STL` 等多个文件。
+Symptom: `IModelDocExtension.SaveAs()` reports success, but the intended part STL is missing and multiple files named
+`PartName - AssemblyComponentName.STL` appear instead.
 
-原因：SW2024 的 STL 导出可能读取 `ActiveDoc`，只持有目标零件 `IModelDoc2` 并不足以保证
-导出对象正确。
+Cause: the SW2024 STL exporter may read `ActiveDoc`. Holding the target part's `IModelDoc2` alone does not ensure
+that the exporter uses that part.
 
-处理：使用 `sw_export.batch_export_formats()`。它会在每个格式导出前调用 `ActivateDoc3()`，
-并严格核对活动文档路径；路径不一致时停止，不接受 API 的表面成功结果。
+Resolution: use `sw_export.batch_export_formats()`, which calls `ActivateDoc3()` before each format
+and strictly checks the active document path. Stop on a mismatch rather than accepting the API's superficial success.
 
-## 操作失败
+## Operation failures
 
-### run_review 只截到一个零件或子装配
+### run_review captures only one part or subassembly
 
-场景：装配体里组件数量、可见状态和颜色回读都正常，但 `run_review()` 导出的图只看到一个轮毂/一个小零件，其他几何只剩阴影或完全不可见。
+Symptom: assembly component count, visibility, and color readbacks look correct, but `run_review()` shows only a wheel or small part; remaining geometry is absent or visible only as shadows.
 
-常见原因：
+Common causes:
 
-1. SolidWorks `SaveBMP()` 使用当前活动图形窗口，目标 `model` 不是活动文档。
-2. 批量打开零件/子装配后，活动文档停留在最后一个组件上。
-3. 规则审查只判断预览非空白，无法发现“截错文档”的视觉错误。
+1. SolidWorks `SaveBMP()` uses the active graphics window, while the target `model` is not active.
+2. After opening parts/subassemblies in a batch, the last component remains active.
+3. Rule-based review detects nonblank previews but cannot identify a screenshot of the wrong document.
 
-稳定写法：使用新版 `sw_review.save_preview()` / `run_review()`；它会在截图前按 `GetTitle()` 激活目标文档。若手写截图流程，必须先 `ActivateDoc3()`，再 `ClearSelection2(True)`、`ViewZoomtofit2()`、`SaveBMP()`。
+Stable approach: use the current `sw_review.save_preview()` / `run_review()`, which activates the target by `GetTitle()` before capture. A manual workflow must call `ActivateDoc3()`, then `ClearSelection2(True)`, `ViewZoomtofit2()`, and `SaveBMP()`.
 
 ```python
 errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
@@ -159,81 +159,81 @@ model.ViewZoomtofit2()
 model.SaveBMP(r"E:\review\assembly.bmp", 1600, 1000)
 ```
 
-最终仍要目视检查四视图；`evaluation.status=pass` 不能替代几何判断。
+Inspect all four views manually; `evaluation.status=pass` does not establish geometric correctness.
 
-### STEP 分件装配后全部叠在原点
+### Split STEP components overlap at the assembly origin
 
-场景：把一个彩色 STEP/装配拆成多个 STEP，再逐个导入 SolidWorks 原生分件并新建总装；组件数量正确，但预览中只看到一个轮子或一团重叠阴影。
+Symptom: a colored STEP/assembly is split, imported as native parts, and reassembled. Component count is correct, but the preview shows a single wheel or an overlapping mass.
 
-原因：部分 CAD 导出器在“单独导出某个实体”时会保留实体原始坐标；而 SolidWorks `AddComponent5(path, ..., x, y, z)` 可能按组件包围盒中心放置，传 `(0,0,0)` 会把所有分件居中叠放。
+Cause: some exporters preserve a body's absolute coordinates when exporting it separately. SolidWorks `AddComponent5(path, ..., x, y, z)` may place its bounding-box center at the requested position, so `(0,0,0)` stacks all components.
 
-稳定写法：
+Stable approach:
 
-1. 导出分件 manifest 时记录每个实体导出前的全局包围盒中心。
-2. 添加组件时传入该中心坐标（米），而不是统一 `(0,0,0)`。
-3. 添加后读取组件 `Transform2.ArrayData[9:12]` 和 `GetBox()`，确认装配包围盒接近原始整机尺寸。
-4. 对子装配 `.SLDASM` 递归检查内部组件，不要只看顶层组件数。
+1. Record each body's global bounding-box center before export in the split-file manifest.
+2. Insert at that center in meters rather than using `(0,0,0)` for every part.
+3. Read `Transform2.ArrayData[9:12]` and `GetBox()` after insertion; confirm overall bounds are close to the original machine.
+4. Recursively inspect components inside `.SLDASM` subassemblies, not just the top-level count.
 
 ```python
 center_m = [value / 1000.0 for value in bbox_center_mm]
 component = add_component(asm, native_path, x=center_m[0], y=center_m[1], z=center_m[2])
 ```
 
-### GetModelDoc2 返回 None
+### GetModelDoc2 returns None
 
-场景：装配体中组件明明存在，但 `component.GetModelDoc2()` 返回 `None`，后续无法读取基准面、实体面或特征。
+Symptom: a component is present in the assembly but `component.GetModelDoc2()` returns `None`, preventing access to planes, faces, and features.
 
-常见原因：
+Common causes:
 
-1. 组件处于压缩或轻化状态。
-2. 组件引用文件没有加载到内存。
-3. 刚添加组件后装配体尚未解析。
+1. The component is suppressed or lightweight.
+2. Its referenced file is not loaded in memory.
+3. A newly inserted component has not yet been resolved.
 
-稳定写法：先解析组件，再读取模型；优先用 `sw_assembly.get_component_model()`。
+Stable approach: resolve the component before reading its model; prefer `sw_assembly.get_component_model()`.
 
 ```python
 from sw_assembly import get_component_model, resolve_component
 
-resolve_component(component)  # 默认 swComponentFullyResolved=2，失败时回退 swComponentResolved=3
+resolve_component(component)  # Default: swComponentFullyResolved=2; fallback: swComponentResolved=3
 part = get_component_model(component)
 ```
 
-### AddComponent4 返回 None
+### AddComponent4 returns None
 
-场景：SW2024 中文版 + pywin32 下，`asm.AddComponent4(path, "", x, y, z)` 无异常但持续返回 `None`，导致装配体无法添加零件。
+Symptom: on Chinese-language SW2024 with pywin32, `asm.AddComponent4(path, "", x, y, z)` returns `None` repeatedly without an exception, preventing insertion.
 
-稳定写法：优先使用 `sw_assembly.add_component()`。当前封装先检查文件路径，然后调用 `AddComponent5(path, 0, "", False, config, x, y, z)`，失败后回退 `AddComponent4()`；若仍为空，会自动静默打开零件、重新激活装配体，再重试 `AddComponent5()`。
+Stable approach: use `sw_assembly.add_component()`. It checks the file path, tries `AddComponent5(path, 0, "", False, config, x, y, z)`, then `AddComponent4()`. If both return null, it silently opens the part, reactivates the assembly, and retries `AddComponent5()`.
 
 ```python
 from sw_assembly import add_component, get_components
 
 component = add_component(asm, r"E:\parts\probe_block.SLDPRT", x=0, y=0, z=0)
 if component is None:
-    raise RuntimeError("添加组件失败")
+    raise RuntimeError("Component insertion failed")
 print(get_components(asm))
 ```
 
-真实 SolidWorks 回归验证：
+Real SolidWorks regression check:
 
 ```powershell
 py -3.13 tests\solidworks_add_component_regression.py --output-dir C:\CADAutomationWorkbench\solidworks_add_component_regression
 ```
 
-通过标准：`component_count >= 1`，`component_name` 非空，`.SLDASM` 保存成功，`review_evaluation.status` 为 `pass` 或至少 `review_checks.expected_outputs_exist=true`。
+Acceptance: `component_count >= 1`, nonempty `component_name`, saved `.SLDASM`, and `review_evaluation.status=pass` or at least `review_checks.expected_outputs_exist=true`.
 
-### Mate 创建后特征树没有真实配合
+### Mate creation leaves no real mate in the feature tree
 
-场景：脚本报告“成功”，但 SolidWorks 里没有 Gear Mate / Concentric Mate，拖动也不会联动。
+Symptom: the script reports success, but the tree has no Gear/Concentric Mate and dragging does not drive coupled motion.
 
-排查：
+Check:
 
-1. `AddMate5()` 是否返回 `None`。
-2. by-ref `ErrorStatus` 是否为成功码；`swAddMateError_NoError=1`，部分版本也会在成功时返回 0。
-3. 创建前选择集是否正好有 2 个对象。
-4. 选择对象是否为装配体上下文实体，而不是零件文档内实体。
-5. Mate 是否写入 `MateGroup` 子特征。
+1. Whether `AddMate5()` returned `None`.
+2. Whether by-ref `ErrorStatus` is a success code. `swAddMateError_NoError=1`; some versions also return 0 on success.
+3. Whether exactly two objects were selected before creation.
+4. Whether selected objects belong to the assembly context rather than the part document.
+5. Whether a mate was written under `MateGroup`.
 
-稳定写法：
+Stable approach:
 
 ```python
 from sw_assembly import add_mate5_checked, collect_mate_feature_summary
@@ -242,37 +242,37 @@ mate = add_mate5_checked(asm, 1, lock_rotation=False, name="shaft_concentric")
 print(collect_mate_feature_summary(asm))
 ```
 
-### AddMate5 返回 Mate 但 error_status=1
+### AddMate5 returns a Mate with error_status=1
 
-场景：`AddMate5()` 返回了非空 Mate，SolidWorks 特征树里也有配合，但脚本仍报失败：
+Symptom: `AddMate5()` returns a nonnull Mate and the tree contains it, but the script reports failure:
 
 ```text
-AddMate5 失败: type=1, error_status=1
+AddMate5 failed: type=1, error_status=1
 ```
 
-原因：`swAddMateError_e` 中 `1=swAddMateError_NoError`，不是错误。不要只把 `0` 当成功。
+Cause: `swAddMateError_e` defines `1=swAddMateError_NoError`. Do not accept only 0 as success.
 
-验证命令：
+Verification command:
 
 ```powershell
 Add-Type -Path 'E:\Solidworks\SOLIDWORKS\SolidWorks.Interop.swconst.dll'
 [int][SolidWorks.Interop.swconst.swAddMateError_e]::swAddMateError_NoError
 ```
 
-稳定写法：使用新版 `sw_assembly.add_mate5_checked()`，它接受 `0` 和 `1` 作为成功码，并仍会检查 Mate 是否为空。
+Stable approach: the current `sw_assembly.add_mate5_checked()` accepts 0 and 1 as success while still checking for a nonnull Mate.
 
-### 选择集被清空
+### Selection set is cleared
 
-场景：第一个面选择成功，执行解析组件或切换文档后，第二个面选择成功但 `AddMate5()` 失败。
+Symptom: the first face selects correctly. After resolving a component or switching documents, the second face selects but `AddMate5()` fails.
 
-原因：`SetSuppression2()`、激活文档、部分重建操作会清空或改变选择集。
+Cause: `SetSuppression2()`, document activation, and some rebuilds can clear or change selections.
 
-稳定顺序：
+Stable sequence:
 
-1. 先解析所有参与 Mate 的组件。
-2. 再用 `GetCorresponding()` 映射到装配体上下文。
-3. 再清空选择集并连续选择两个实体。
-4. 立即调用 `AddMate5()`。
+1. Resolve all components participating in the mate.
+2. Map entities with `GetCorresponding()`.
+3. Clear selections, then select both entities consecutively.
+4. Immediately call `AddMate5()`.
 
 ```python
 from sw_assembly import select_entities_for_mate
@@ -280,56 +280,56 @@ from sw_assembly import select_entities_for_mate
 select_entities_for_mate(asm, entity_a, entity_b, mark=1)
 ```
 
-### GetCorresponding 返回 None
+### GetCorresponding returns None
 
-场景：零件内基准面或面存在，但 `component.GetCorresponding(face_or_feature)` 返回 `None`。
+Symptom: a plane or face exists in a part, but `component.GetCorresponding(face_or_feature)` returns `None`.
 
-常见原因：
+Common causes:
 
-1. 传入对象不是该组件引用文档里的对象。
-2. 组件未解析。
-3. 使用了错误组件实例；同一零件插入多次时必须用目标实例调用 `GetCorresponding()`。
-4. 选择的是临时几何或已失效对象。
+1. The supplied object does not belong to the component's referenced document.
+2. The component is unresolved.
+3. The wrong instance is used. When one part is inserted multiple times, call `GetCorresponding()` on the intended instance.
+4. The selected geometry is temporary or the object is stale.
 
-稳定写法：从 `get_component_model(component)` 返回的模型中查找特征/面，再由同一个 `component` 映射。
+Stable approach: find the feature/face in the model returned by `get_component_model(component)`, then map it with that same component.
 
-### 同心 Mate 后零件不能转
+### A component cannot rotate after a concentric mate
 
-原因通常不是“没有铰链”，而是旋转自由度被锁死：
+The usual issue is locked rotation, not a missing hinge:
 
-1. `lock_rotation=True` 或 GUI 中勾选了 Lock Rotation。
-2. 旋转件又被三个基准面重合约束完全固定。
-3. 组件本身被固定。
-4. 轴向定位 Mate 太多，导致过定义。
+1. `lock_rotation=True` or GUI Lock Rotation is enabled.
+2. Three additional coincident reference planes fully constrain the rotating part.
+3. The component itself is fixed.
+4. Too many axial-location mates overdefine the assembly.
 
-做运动装配时，同心 Mate 默认应使用：
+For moving assemblies, use this concentric-mate default:
 
 ```python
 add_concentric_mate_by_cylinders(..., lock_rotation=False)
 ```
 
-上盖铰链可用同心 Mate 保留旋转，再用一个平面重合/距离 Mate 限制轴向窜动。
+A cover hinge can retain rotation through a concentric mate and limit axial movement with one plane-coincident/distance mate.
 
-### 特征创建失败（返回 None）
+### Feature creation returns None
 
-常见原因：
-1. **未选择正确实体** - 检查 SelectByID2 的实体名称和类型
-2. **草图未完全约束** - 添加足够的约束和尺寸
-3. **草图有开环** - 拉伸需要闭合轮廓
-4. **单位错误** - API 使用米，不是毫米
+Common causes:
+1. **Wrong entity selection**: check the name and type passed to SelectByID2.
+2. **Underconstrained sketch**: add the required dimensions and relations.
+3. **Open sketch contour**: extrusion requires a closed profile.
+4. **Incorrect units**: API lengths are meters, not millimeters.
 
-### SelectByID2("SKETCH") 持续返回 False
+### SelectByID2("SKETCH") repeatedly returns False
 
-场景：SolidWorks 2024 中文版中，`SelectByID2("草图1", "SKETCH", ...)` 和 `SelectByID2("Sketch1", "SKETCH", ...)` 都返回 `False`，随后 `FeatureExtrusion3()` 返回 `None`。
+Symptom: in Chinese-language SolidWorks 2024, both `SelectByID2("草图1", "SKETCH", ...)` (localized Sketch1) and `SelectByID2("Sketch1", "SKETCH", ...)` return `False`; `FeatureExtrusion3()` then returns `None`.
 
-根因：部分版本/语言环境下，草图名称选择不稳定；旧版 `sw_part._ensure_sketch_selected()` 还曾经把“当前选择集数量 > 0”当成成功条件，导致前几个零件靠残留选择集偶然成功，选择集被清空后全部失败。
+Cause: name-based sketch selection is unstable on some versions/localizations. An old `sw_part._ensure_sketch_selected()` also treated any nonempty selection set as success, so early parts worked accidentally until another action cleared the leftover selection.
 
-稳定写法：
+Stable approach:
 
-1. 优先使用 `with sketch(model, "...") as sketch_name:`，由 `sw_part.py` 在创建草图时缓存真实草图对象引用。
-2. 不要在特征创建前依赖残留选择集；切换文档、重建、解析组件和失败的 API 调用都可能清空选择集。
-3. 选择草图时优先用对象级 `Select2()` 选择草图 Feature / Sketch；最后才回退 `SelectByID2("SKETCH")`。
-4. 若必须手写底层流程，`end_sketch(model)` 的返回值可直接传给 `extrude_boss()` / `extrude_cut()`。
+1. Prefer `with sketch(model, "...") as sketch_name:` so `sw_part.py` caches the real sketch object at creation.
+2. Do not depend on leftover selections. Document switches, rebuilds, component resolution, and failed APIs can clear them.
+3. Prefer object-level `Select2()` on the sketch Feature/Sketch, falling back to `SelectByID2("SKETCH")` last.
+4. In a manual low-level flow, pass the result of `end_sketch(model)` directly to `extrude_boss()` / `extrude_cut()`.
 
 ```python
 from sw_part import end_sketch, extrude_boss, sketch_circle, start_sketch
@@ -339,28 +339,28 @@ sketch_circle(model, 0, 0, 0.025)
 sketch_ref = end_sketch(model)
 feature = extrude_boss(model, sketch_ref, 0.05)
 if feature is None:
-    raise RuntimeError("拉伸失败：检查草图闭合、方向和对象选择")
+    raise RuntimeError("Extrusion failed: check closed contours, direction, and object selection")
 ```
 
-真实 SolidWorks 回归验证：
+Real SolidWorks regression check:
 
 ```powershell
 py -3.13 tests\solidworks_sketch_selection_regression.py --output-dir C:\CADAutomationWorkbench\solidworks_skill_regression
 ```
 
-通过标准：脚本在两次 `ClearSelection2(True)` 后都报告 `selection_count=0`，随后仍能生成 `凸台-拉伸1` 和 `切除-拉伸1`，保存 `.SLDPRT`、导出 `.step`，并且 `review_evaluation.status` 为 `pass`。
+Acceptance: after two `ClearSelection2(True)` calls the script reports `selection_count=0`, yet still creates the localized `凸台-拉伸1` (Boss-Extrude1) and `切除-拉伸1` (Cut-Extrude1), saves `.SLDPRT`, exports `.step`, and returns `review_evaluation.status=pass`.
 
-### FeatureCut4 长参数不稳定
+### Unstable long FeatureCut4 signatures
 
-场景：手写 `FeatureCut4(...)` 后特征返回 `None`，但同一草图在 GUI 或封装函数中可切除。
+Symptom: handwritten `FeatureCut4(...)` returns `None`, although the same sketch cuts successfully in the GUI or wrapper.
 
-原因：`FeatureCut4` 参数多，终止条件、翻转方向、`FlipSide`、`NormalCut`、选择集状态任一不匹配都会静默失败。不要凭记忆拼长参数。
+Cause: mismatched end conditions, reverse direction, `FlipSide`, `NormalCut`, or selection state can silently fail among FeatureCut4's many arguments. Do not reconstruct long calls from memory.
 
-稳定写法：
+Stable approach:
 
-1. 优先使用 `sw_part.extrude_cut()`。
-2. 如果必须底层调用，先用最小圆柱/矩形测试各种方向和终止条件。
-3. 每次切除后检查返回特征对象；失败时不要继续保存交付文件。
+1. Prefer `sw_part.extrude_cut()`.
+2. If a low-level call is required, test directions and end conditions on a minimal cylinder/rectangle first.
+3. Check the returned feature after every cut; do not save a delivery file after an unresolved failure.
 
 ```python
 from sw_part import extrude_cut
@@ -369,65 +369,65 @@ feature = extrude_cut(model, sketch_name, 0, direction=True, flip=False)
 if feature is None:
     feature = extrude_cut(model, sketch_name, 0, direction=True, flip=True)
 if feature is None:
-    raise RuntimeError("切除失败，需检查草图、方向或终止条件")
+    raise RuntimeError("Cut failed: check the sketch, direction, and end condition")
 ```
 
-### 中心基准面切槽导致轴被剖开
+### Cutting a slot from a central plane splits the shaft
 
-场景：轴类零件上要做长圆槽/键槽，脚本在 `Front Plane` 上画槽并盲切，结果模型出现沿轴向的大平面切口，看起来像把圆柱剖掉一半。
+Symptom: an obround/keyway drawn on `Front Plane` and cut blind produces a broad axial planar opening, as though half the cylinder were removed.
 
-原因：`Front Plane` 常穿过轴线，不是圆柱外表面。直接从中心面切槽会产生剖切效果，而不是表面凹槽。
+Cause: `Front Plane` commonly crosses the shaft axis rather than its outer surface. A cut from that central plane sections the shaft instead of making a surface recess.
 
-稳定写法：先创建切向偏置参考面，再在该平面上画槽并按槽深盲切；见 `references/part-modeling.md` 的“圆柱表面长圆槽”。
+Stable approach: create a tangent offset reference plane, sketch the slot there, and blind-cut to the requested depth. See the cylindrical-surface obround-slot section in `references/part-modeling.md`.
 
-### 槽特征树成功但预览不可见
+### Slot feature exists but is absent from the preview
 
-场景：特征树中已有 `Cut_*_Slot`，`run_review()` 也通过，但等轴测或主视图看不到槽。
+Symptom: `Cut_*_Slot` exists and `run_review()` passes, but no slot appears in the isometric or main view.
 
-排查：
+Check:
 
-1. 槽是否切到了背侧；尝试翻转 `flip` 或导出另一侧视图。
-2. 槽是否从中心面切除但被当前着色遮挡；查看俯视/右视。
-3. 特征是否只切掉了不可见的内部体积；用剖视或修改切向参考面确认。
-4. 预览图是否显示了被选中的参考面，导致遮挡槽轮廓。
+1. Whether it cut the rear side; reverse `flip` or export the opposite view.
+2. Whether the cut started at the central plane and is hidden by shading; inspect top/right views.
+3. Whether it removed only invisible internal volume; inspect a section or revise the tangent plane.
+4. Whether a selected reference plane obscures the slot outline.
 
-处理：不要只依赖 `feature is not None`。导出 `isometric/front/top/right`，目视确认关键几何确实出现。
+Resolution: `feature is not None` is insufficient. Export `isometric/front/top/right` and visually confirm the required geometry.
 
-### 基准面选择失败
+### Reference-plane selection fails
 
-**原因**: 中英文名称不同
-**解决**:
+**Cause**: English and Chinese object names differ.
+**Resolution**:
 ```python
-# 尝试英文名称
+# Try the English name
 success = model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, None, 0)
 if not success:
-    # 尝试中文名称
+# Try the Chinese-language API object name
     model.Extension.SelectByID2("前视基准面", "PLANE", 0, 0, 0, False, 0, None, 0)
 ```
 
-### 保存/导出失败
+### Save/export fails
 
-检查错误码：
+Read the error codes:
 ```python
 errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
 warnings = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
 success = model.Extension.SaveAs(path, 0, 1, None, errors, warnings)
-print(f"错误码: {errors.value}, 警告码: {warnings.value}")
-# 查看 references/export.md 中的错误码对照表
+print(f"Error code: {errors.value}, warning code: {warnings.value}")
+# See the code table in references/export.md
 ```
 
-### STEP/IGES 用 OpenDoc6 崩溃或弹模板对话框
+### OpenDoc6 crashes on STEP/IGES or import opens a template dialog
 
-场景：`OpenDoc6()` 打开 `.step/.stp/.igs/.iges` 时 SolidWorks 退出、RPC 断开；或
-`LoadFile4(path, "", importData, errors)` 弹出“新建 SOLIDWORKS 文件”模板对话框并阻塞。
+Symptom: opening `.step/.stp/.igs/.iges` with `OpenDoc6()` exits SolidWorks or disconnects RPC; alternatively,
+`LoadFile4(path, "", importData, errors)` blocks on the New SOLIDWORKS Document template dialog.
 
-原因：非 DXF/DWG、非 Pro/E 外来文件应通过 `LoadFile4` 导入为新的 SolidWorks 文档，
-并将 `ArgString` 设为 `"r"`。空字符串在 SW2024 环境中可能触发模板选择 UI，不适合自动化。
+Cause: foreign files other than DXF/DWG or Pro/E should be imported into new documents with `LoadFile4`,
+using `ArgString="r"`. An empty string can trigger template selection in SW2024 and is unsuitable for automation.
 
-稳定写法：优先使用 `sw_connect.open_document()` / `SolidWorksSession.open()`；封装会对
-STEP/STP/IGES/IGS 自动调用 `LoadFile4(file_path, "r", sw.GetImportFileData(file_path), errors)`。
-导入前还会调用 `ensure_default_templates()`，设置默认零件/装配/工程图模板，并打开
-`swAlwaysUseDefaultTemplates=111`，避免 SolidWorks 弹出“新建 SOLIDWORKS 文件”模板窗口。
+Stable approach: prefer `sw_connect.open_document()` / `SolidWorksSession.open()`, which automatically use
+`LoadFile4(file_path, "r", sw.GetImportFileData(file_path), errors)` for STEP/STP/IGES/IGS.
+Before import, `ensure_default_templates()` configures part, assembly, and drawing defaults and enables
+`swAlwaysUseDefaultTemplates=111` to reduce New SOLIDWORKS Document dialogs.
 
 ```python
 from sw_session import SolidWorksSession
@@ -437,34 +437,34 @@ model = session.open(r"E:\parts\body.step", silent=True, raise_on_error=True)
 session.save(model, r"E:\parts\body.SLDPRT")
 ```
 
-真实 SolidWorks 回归验证：
+Real SolidWorks regression check:
 
 ```powershell
 py -3.13 tests\solidworks_loadfile4_import_regression.py --output-dir C:\CADAutomationWorkbench\solidworks_loadfile4_import_regression
 ```
 
-通过标准：`status=pass`，`body_count >= 1`，导入后的 `.SLDPRT` 保存成功，并生成四视图审查报告。
+Acceptance: `status=pass`, `body_count >= 1`, a saved imported `.SLDPRT`, and a four-view review report.
 
-注意：默认模板路径的字符串偏好枚举为 `swDefaultTemplatePart=8`、
-`swDefaultTemplateAssembly=9`、`swDefaultTemplateDrawing=10`。不要误用文件位置枚举或旧值，
-否则 `NewDocument()` / `LoadFile4()` 仍可能弹模板对话框。
+Default template string-preference enums are `swDefaultTemplatePart=8`,
+`swDefaultTemplateAssembly=9`, and `swDefaultTemplateDrawing=10`. Do not substitute file-location enums or obsolete values;
+otherwise `NewDocument()` / `LoadFile4()` may still show a template dialog.
 
-若完整大型 STEP 反复触发 `pywintypes.com_error: (-2147023170, '远程过程调用失败。')`，
-不要继续盲目重试同一 SolidWorks 进程；先保存日志，重启 SolidWorks 后改用更小分件导入、
-Parasolid 中间格式，或让用户手工确认模板弹窗。`ensure_default_templates()` 只能降低弹窗概率，
-不能保证所有 SW2024 本地模板配置都静默导入。
+If a large STEP repeatedly raises `pywintypes.com_error: (-2147023170, 'The remote procedure call failed.')`,
+do not keep retrying the same SolidWorks process blindly. Save logs, restart SolidWorks, and try smaller split parts,
+a Parasolid intermediate, or user-confirmed template selection. `ensure_default_templates()` reduces dialog risk
+but cannot guarantee silent import for every local SW2024 template configuration.
 
-### OBJ/STL 用 OpenDoc6 打不开或 LoadFile4 类型不匹配
+### OBJ/STL fails with OpenDoc6 or has a LoadFile4 type mismatch
 
-场景：公开网格参考模型、汽车外观模型或测试立方体 `.obj/.stl` 用 `OpenDoc6(path, swDocPART, ...)`
-打开失败，错误码为 `2097152`（`swFileRequiresRepairError`）；改用
-`LoadFile4(path, "r", None, errors)` 又报 `com_error(-2147352571, '类型不匹配。')`。
+Symptom: a public mesh reference, vehicle model, or test cube `.obj/.stl` fails to open with `OpenDoc6(path, swDocPART, ...)`
+and returns `2097152` (`swFileRequiresRepairError`); switching to
+`LoadFile4(path, "r", None, errors)` produces `com_error(-2147352571, 'Type mismatch.')`.
 
-原因：在部分 SolidWorks 2024 COM 环境中，OBJ/STL 不能按普通零件文档路径打开；
-`LoadFile4()` 第三个参数也不能传 Python `None`。这不一定表示网格文件坏，即使一个
-684 字节的简单 STL 立方体也可能复现同样问题。
+Cause: some SolidWorks 2024 COM environments cannot open OBJ/STL as ordinary part documents,
+and `LoadFile4()` cannot take Python `None` as its third argument. This does not necessarily mean corruption;
+even a simple 684-byte STL cube can reproduce it.
 
-稳定写法：优先使用 `scripts/sw_import_mesh_reference.py`，或手写以下最小导入：
+Stable approach: use `scripts/sw_import_mesh_reference.py` or the following minimal import:
 
 ```python
 from sw_connect import connect_solidworks, create_empty_dispatch_variant, save_document
@@ -488,16 +488,16 @@ assert model is not None, errors.value
 save_document(model, r"E:\work\reference.SLDPRT")
 ```
 
-注意：STEP/STP/IGES/IGS 与 OBJ/STL 的导入数据参数不同。中性 CAD 文件继续使用
-`sw.GetImportFileData(path)`；OBJ/STL 网格参考模型使用空 Dispatch 变体。不要把两条路线混用。
+STEP/STP/IGES/IGS and OBJ/STL use different import-data arguments. Neutral CAD files continue to use
+`sw.GetImportFileData(path)`; OBJ/STL mesh references use an empty Dispatch variant. Do not mix these routes.
 
-### SaveAs 错误码 1 或覆盖失败
+### SaveAs error 1 or failed overwrite
 
-场景：`session.save(model, path)` 或 `model.Extension.SaveAs(...)` 返回失败，错误码为 `1`，目标文件明明存在且路径正确。
+Symptom: `session.save(model, path)` or `model.Extension.SaveAs(...)` returns failure/error `1`, even though the target exists and its path is correct.
 
-常见原因：同名文档已经在 SolidWorks 会话中打开，或目标文件被当前 SolidWorks 进程占用，导致覆盖失败。
+Common cause: a document with the same name is already open or the current SolidWorks process holds the target file, preventing overwrite.
 
-稳定写法：
+Stable approach:
 
 ```python
 session = SolidWorksSession()
@@ -505,29 +505,29 @@ session.sw.CloseDoc("Drawing_Stepped_Shaft.SLDPRT")
 model = session.new_part()
 ```
 
-注意：只关闭本次脚本明确要覆盖的输出文档，不要盲目 `CloseAllDocuments()`，除非用户确认可以清理整个会话。
+Close only the output document that this script explicitly intends to overwrite. Do not call `CloseAllDocuments()` blindly unless the user approved clearing the session.
 
-### 临时 SLDPRT 删除失败
+### Cannot delete a temporary SLDPRT
 
-场景：PowerShell `Remove-Item` 报：
+Symptom: PowerShell `Remove-Item` reports:
 
 ```text
 The process cannot access the file ... because it is being used by another process.
 ```
 
-原因：调试零件仍在 SolidWorks 中打开。
+Cause: the debug part remains open in SolidWorks.
 
-处理顺序：
+Recovery sequence:
 
-1. 用 `sw.CloseDoc("<文件名>.SLDPRT")` 关闭对应文档。
-2. 再用 `Remove-Item -LiteralPath <path> -Force` 清理临时文件。
-3. 删除前校验路径只匹配预期临时文件，例如 `debug_*.SLDPRT`。
+1. Close the matching document with `sw.CloseDoc("<filename>.SLDPRT")`.
+2. Remove the temporary file with `Remove-Item -LiteralPath <path> -Force`.
+3. Before deletion, verify that the path matches only the intended temporary file, such as `debug_*.SLDPRT`.
 
-### 参考面或草图污染预览图
+### Reference planes or sketches obscure previews
 
-场景：`run_review()` 导出的 BMP 出现橙色大参考面、草图或选择高亮，影响判断实体几何。
+Symptom: the BMP from `run_review()` contains large orange planes, sketches, or selection highlights that obscure solid geometry.
 
-稳定写法：
+Stable approach:
 
 ```python
 for plane_name in created_plane_names:
@@ -544,18 +544,18 @@ model.ClearSelection2(True)
 model.ForceRebuild3(False)
 ```
 
-`BlankRefGeom()` 通常需要先选择要隐藏的参考几何；单独调用不一定隐藏脚本新建的基准面。
+`BlankRefGeom()` usually requires selecting the reference geometry first; calling it alone may not hide a newly created plane.
 
-### 多色装配体几乎全部变绿
+### A multicolor assembly appears almost entirely green
 
-场景：脚本配置了红、蓝、银、黑等颜色，但装配体或 BMP 预览几乎只有绿色。
+Symptom: red, blue, silver, and black were configured, but the assembly or BMP is nearly all green.
 
-原因通常有两类，必须分别验证：
+Distinguish and verify these two common causes:
 
-1. 把普通 Python `list` 直接传给 `MaterialPropertyValues`，导致 COM 数组编组错位。
-2. 截图前仍有组件、面或边被选中，SolidWorks 绿色选择高亮覆盖真实外观。
+1. A normal Python `list` was passed directly to `MaterialPropertyValues`, mis-marshalling the COM array.
+2. A component, face, or edge remains selected, and SolidWorks' green highlight hides the actual appearance.
 
-稳定写法：
+Stable approach:
 
 ```python
 from sw_appearance import set_component_appearance, verify_appearance
@@ -567,19 +567,19 @@ model.ClearSelection2(True)
 model.GraphicsRedraw2()
 ```
 
-不要自行把列表换成 tuple 后继续尝试；应统一使用 `material_variant()` 生成
-`VT_ARRAY | VT_R8`。不要用 `bool(SetMaterialPropertyValues2(...))` 判断结果，
-因为该方法返回 `void`。验证命令：
+Do not simply replace a list with a tuple and keep guessing. Use `material_variant()` consistently to produce
+`VT_ARRAY | VT_R8`. Do not judge `SetMaterialPropertyValues2(...)` with `bool(...)`
+because it returns `void`. Verification command:
 
 ```powershell
 python tests\solidworks_appearance_regression.py
 ```
 
-### MathUtility.CreateTransform 不稳定
+### MathUtility.CreateTransform is unstable
 
-场景：尝试 `sw.GetMathUtility().CreateTransform(data)` 或 `math_utility.CreateTransform()` 时 COM 返回异常、空对象，或组件移动后不求解。
+Symptom: `sw.GetMathUtility().CreateTransform(data)` or `math_utility.CreateTransform()` raises COM errors, returns null, or moves a component without solving.
 
-稳定写法：读取组件已有 `Transform2`，修改 `ArrayData`，再调用 `SetTransformAndSolve2()`；失败时再回退到 `component.Transform2 = transform`。
+Stable approach: reuse the component's existing `Transform2`, modify `ArrayData`, and call `SetTransformAndSolve2()`. If necessary, fall back to `component.Transform2 = transform`.
 
 ```python
 from sw_assembly import apply_component_transform_x
@@ -588,77 +588,77 @@ from sw_connect import deg
 ok = apply_component_transform_x(component, 0.1, 0.0, 0.0, deg(30))
 ```
 
-注意：直接改 Transform 适合生成演示帧或定位；如果目标是在 SolidWorks 里可拖动，仍要靠真实 Mate 保留自由度。
+Direct transforms are suitable for positioning or demonstration frames. Interactive dragging still requires real mates preserving degrees of freedom.
 
-### SolidWorks 内部错误或 COM 变慢
+### Internal SolidWorks errors or slow COM
 
-场景：大批量生成零件/装配后，`AddComponent4`、保存、导出或特征操作随机失败。
+Symptom: after large batches of parts/assemblies, `AddComponent4`, saves, exports, or feature calls fail intermittently.
 
-常见原因：打开文档过多、图形窗口和特征树刷新堆积、同一进程长时间运行。
+Common causes: too many documents, accumulated graphics/tree refresh work, and a long-running process.
 
-处理顺序：
+Recovery sequence, within the approved session-cleanup scope:
 
-1. 保存关键输出。
-2. 调用 `sw.CloseAllDocuments(False)` 清理会话。
-3. 分批重新打开必要零件并装配。
-4. 仍不稳定时，让用户确认后重启 `SLDWORKS.exe`。
-5. 脚本内记录失败组件和失败 API，不要只打印“完成”。
+1. Save critical outputs.
+2. Clear the session with `sw.CloseAllDocuments(False)`.
+3. Reopen required parts in batches and assemble them.
+4. If instability persists, obtain user confirmation before restarting `SLDWORKS.exe`.
+5. Log failed components and API calls rather than printing only a completion message.
 
-## 未封装 API 调用
+## Calling unwrapped APIs
 
-当需要使用本 skill 尚未封装的 SolidWorks API 时：
+When the skill does not yet wrap an API:
 
-1. 先查 SolidWorks 官方 API 文档或本地 SDK 文档，确认接口签名和枚举。
-2. 用最小脚本验证接口，不要直接嵌入大任务。
-3. 对 COM 返回值做 `None` / `False` 检查，并打印错误码/警告码。
-4. 完成后把稳定写法补进 `scripts/`，把坑位补进本文件或对应 `references/*.md`。
+1. Verify the interface signature and enums in official SolidWorks API documentation or the local SDK.
+2. Exercise it in a minimal script before adding it to a larger task.
+3. Check COM returns for `None` / `False` and print error/warning codes.
+4. Add stable calls to `scripts/` and pitfalls to this file or the relevant `references/*.md`.
 
-沉淀模板：
+Reusable record:
 
 ```text
-### <API 或错误现象>
+### <API or failure symptom>
 
-场景:
-错误/症状:
-原因:
-稳定写法:
-  # 最小可运行示例
-验证方式:
+Scenario:
+Error/symptom:
+Cause:
+Stable approach:
+  # Minimal executable example
+Verification:
 ```
 
-## 性能优化
+## Performance
 
-### 大型装配体操作慢
+### Slow large-assembly operations
 
 ```python
-# 开启后台处理模式
+# Enable background processing mode
 model.FeatureManager.EnableFeatureTree = False
 model.ActiveView.EnableGraphicsUpdate = False
 
-# ... 执行操作 ...
+# ... Perform operations ...
 
-# 恢复并刷新
+# Restore and refresh
 model.FeatureManager.EnableFeatureTree = True
 model.ActiveView.EnableGraphicsUpdate = True
 model.GraphicsRedraw2()
 ```
 
-### 批量操作优化
+### Batch optimization
 
 ```python
-# 禁用自动重建
+# Disable automatic rebuilding
 sw.UserControl = False
 
-# 执行批量操作...
+# Perform batch operations...
 
-# 手动重建
+# Rebuild manually
 model.EditRebuild3()
 sw.UserControl = True
 ```
 
-## 版本号对照
+## Version mapping
 
-| SolidWorks | 修订号 | ProgID |
+| SolidWorks | Revision | ProgID |
 |---|---|---|
 | 2020 | 28 | SldWorks.Application.28 |
 | 2021 | 29 | SldWorks.Application.29 |
@@ -668,10 +668,10 @@ sw.UserControl = True
 | 2025 | 33 | SldWorks.Application.33 |
 | 2026 | 34 | SldWorks.Application.34 |
 
-公式: `修订号 = (年份 - 2000) + 8`
+Formula: `revision = (year - 2000) + 8`
 
-## 许可证与加载项边界
+## License and add-in boundaries
 
-SolidWorks 基础 COM 可连接，并不证明 Simulation、Routing、Motion 或模具加载项具备可用许可证。能力探测必须分别记录加载项注册、加载状态和最小真实操作结果；缺少合法授权时返回 `blocked` 与具体依赖，不把授权问题误报为普通脚本失败。
+A working base COM connection does not establish available Simulation, Routing, Motion, or mold-tool licenses. Record add-in registration, load state, and a minimal real operation separately. Missing authorization returns `blocked` with its dependency; do not misclassify it as an ordinary script failure.
 
-本项目不修补许可证、不绕过激活、不修改授权服务，也不为非授权安装伪造能力。此时仍可使用 OCP、CalculiX、ezdxf 等合法无头后端完成开放格式范围内的任务。
+This project does not patch licenses, bypass activation, modify licensing services, or fabricate capabilities for unauthorized installations. Legitimate headless backends such as OCP, CalculiX, and ezdxf remain available within their open-format scope.

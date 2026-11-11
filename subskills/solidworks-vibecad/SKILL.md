@@ -1,39 +1,39 @@
 ---
 name: solidworks-vibecad
-description: SolidWorks VibeCAD 参数化设计规划子技能。用于把自然语言机械设计需求转成结构化设计计划、制造规则检查、SolidWorks API 执行摘要和审查门禁；当任务涉及 text-to-CAD、vibecoding 固化、行业知识库、提示词模板、参数化建模计划、CNC 安装座/连接块/支架批量生成时使用。
+description: SolidWorks VibeCAD parametric design planning subskill. Convert natural-language mechanical requirements into structured design plans, manufacturing-rule checks, SolidWorks API execution outlines, and review gates. Use for text-to-CAD workflows, reusable mechanical knowledge, planning prompts, parametric modeling plans, and families of CNC mounts, connector blocks, and brackets.
 ---
 
 # SolidWorks VibeCAD
 
-## 核心定位
+## Purpose
 
-本子技能把“自然语言想法”转成可执行、可审查的 SolidWorks 参数化设计计划。它不是临时生成 VBA 宏，而是把重复机械设计固化成：
+This subskill turns natural-language ideas into executable, reviewable SolidWorks parametric design plans. It captures repeated mechanical design work as reusable assets:
 
 ```text
-行业知识库 + 参数 schema + 提示词模板 + 稳定 API 封装 + 自动审查
+Domain knowledge + parameter schema + planning prompts + reliable API wrappers + automated review
 ```
 
-LLM 负责理解意图和补齐参数；SolidWorks API 负责确定性执行；知识库负责工程正确性；审查链路负责防止“看起来成功但几何错误”。
+The LLM interprets intent and fills in parameters; the SolidWorks API performs deterministic operations; the knowledge base supplies engineering rules; and the review workflow detects apparent success with incorrect geometry.
 
-## 适用任务
+## Use cases
 
-- 用户用自然语言描述零件，希望生成参数化建模计划。
-- 需要把高频机械件模板化，如 CNC 安装座、连接块、L 型支架、底板、孔阵列。
-- 需要沉淀行业知识库，如攻丝底孔、通孔、沉孔、倒角、圆角、最小壁厚。
-- 需要给 SolidWorks 自动化执行器提供 JSON 计划和风险门禁。
-- 需要把成功案例变成可复用模板，而不是每次重新写宏。
+- Convert a natural-language part description into a parametric modeling plan.
+- Create reusable templates for CNC mounts, connector blocks, L-brackets, base plates, and hole patterns.
+- Record rules for tap drills, clearance holes, counterbores, chamfers, fillets, and minimum wall thickness.
+- Supply JSON plans and risk gates to a SolidWorks executor.
+- Turn successful cases into reusable templates instead of rewriting macros for each task.
 
-## 工作流
+## Workflow
 
-1. 读取用户需求，确认零件族、工艺、材料、输出格式和约束。
-2. 参考 `knowledge/manufacturing_rules.yaml` 补齐保守默认值。
-3. 用 `prompts/solidworks_parametric_planner.md` 约束 LLM 输出结构化计划。
-4. 用 `schemas/design_plan.schema.json` 校验计划字段。
-5. 运行 `scripts/plan_from_brief.py` 生成本地规则计划，或把 LLM 输出保存为同 schema JSON。
-6. 运行 `scripts/sw_execution_outline.py` 生成 SolidWorks 执行摘要。
-7. 需要实际执行基础零件时，读取父技能 `references/closed-loop-modeling.md`，使用 `scripts/sw_closed_loop.py` 接通只读上下文、逐步执行及测量反馈；未支持的操作交给原专项子技能，不能静默省略。
+1. Read the brief and establish the part family, process, material, output formats, and constraints.
+2. Use `knowledge/manufacturing_rules.yaml` for conservative defaults.
+3. Use `prompts/solidworks_parametric_planner.md` to produce a structured plan.
+4. Validate the fields against `schemas/design_plan.schema.json`.
+5. Run `scripts/plan_from_brief.py` for a local rule-based plan, or save the LLM output as JSON using the same schema.
+6. Run `scripts/sw_execution_outline.py` to generate the SolidWorks execution outline.
+7. For actual basic-part execution, read the parent skill's `references/closed-loop-modeling.md` and use `scripts/sw_closed_loop.py` for read-only context, stepwise execution, and measured feedback. Route unsupported operations to the existing specialized subskills; do not silently omit them.
 
-## 快速命令
+## Quick commands
 
 ```powershell
 py subskills\solidworks-vibecad\scripts\plan_from_brief.py `
@@ -45,35 +45,35 @@ py subskills\solidworks-vibecad\scripts\sw_execution_outline.py `
   --out subskills\solidworks-vibecad\examples\motor_mount_execution.md
 ```
 
-## 与父技能的关系
+## Relationship to the parent skill
 
-- `solidworks-automation`：连接 SolidWorks、建模、导出、审查的主技能。
-- `solidworks-vibecad`：自然语言 -> 参数化设计计划。
-- `solidworks-fillet-chamfer-cnc`：复杂 CNC 圆角/倒角执行经验。
-- `solidworks-threaded-holes`：螺纹孔、攻丝底孔和螺纹表达执行经验。
+- `solidworks-automation`: SolidWorks connection, modeling, export, and review.
+- `solidworks-vibecad`: natural language to parametric design plans.
+- `solidworks-fillet-chamfer-cnc`: execution lessons for CNC parts with many fillets and chamfers.
+- `solidworks-threaded-holes`: execution lessons for tap drills and thread representations.
 
-当计划中出现圆角/倒角密集的 CNC 件，继续读取：
+When a plan includes a CNC part with many fillets or chamfers, read:
 
 ```text
 subskills/solidworks-fillet-chamfer-cnc/SKILL.md
 ```
 
-当计划中出现 M3/M4/M5/M6/M8 螺纹孔，继续读取：
+When it includes M3/M4/M5/M6/M8 threaded holes, read:
 
 ```text
 subskills/solidworks-threaded-holes/SKILL.md
 ```
 
-## 少走弯路
+## Pitfalls
 
-- 不要让 LLM 直接输出 SolidWorks 长参数 COM 调用。
-- 不要把计划 JSON 当作几何成功；必须经过真实 SolidWorks 执行和 `sw_review` 审查。
-- 不确定参数可以用保守默认值，但必须写入 `assumptions`。
-- 螺丝固定孔要区分通孔、沉孔、攻丝孔；不能把 `M5 螺丝固定孔` 默认误建成 M5 攻丝孔。
-- 输出计划必须包含 `review_plan`，否则不能进入自动建模。
+- Do not have the LLM directly generate long-argument SolidWorks COM calls.
+- A plan JSON file does not prove geometry success. Run it in SolidWorks and review it with `sw_review`.
+- Conservative defaults are acceptable for uncertain parameters, but record them in `assumptions`.
+- Distinguish clearance, counterbored, and tapped fastening holes. An `M5 screw mounting hole` must not automatically become an M5 tapped hole.
+- The output must include `review_plan` before automated modeling begins.
 
-## 当前状态
+## Current status
 
-原入口仍生成需求计划及执行摘要。新增的 `scripts/sw_closed_loop.py` 已接通新建零件的基础动作执行、
-上下文参数绑定和每步几何反馈，状态为 `pilot`；操作范围与使用方式见父技能 `references/closed-loop-modeling.md`。
-默认完整 CNC 计划中的圆倒角、口袋尚不在新执行白名单，仍走已有专项流程。源模型只读，不原地修改。
+The original entry point continues to generate requirement plans and execution outlines. `scripts/sw_closed_loop.py` adds basic new-part execution,
+context parameter binding, and geometry feedback after each step. It remains `pilot`; see the parent skill's `references/closed-loop-modeling.md` for scope and usage.
+Fillets, chamfers, and pockets in the default complete CNC plan are not yet included in that executor's allowlist and still use the existing specialized workflows. Source models remain read-only and are not modified in place.

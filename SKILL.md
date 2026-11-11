@@ -1,19 +1,21 @@
 ---
 name: solidworks-modelops
-description: SolidWorks 参数化建模、命名尺寸修改、检查点恢复与同题回归验证。用于在任务副本中创建或修改零件，测量真实几何、核对草图约束并交付原生文件和STEP；其他机械专项按需调用随包模块。
+description: Parametric SolidWorks modeling, named dimension edits, checkpoint recovery, and regression validation. Create or edit task-owned part copies, measure actual geometry, audit sketch constraints, and deliver native files and STEP exports; route other mechanical workflows to the included specialist modules as needed.
 ---
 
 # SolidWorks ModelOps
 
-用一个 JSON 接口贯通需求计划、原生建模、改尺寸、检查点与验收。当前统一执行器为 **pilot**，
-仅覆盖基础零件；随包保留的专项能力不自动成为统一事务接口的一部分。
+Use one JSON interface for planning, native modeling, dimension edits, checkpoints, and acceptance checks.
+The unified executor is **pilot** and covers basic parts only. Included specialist workflows do not
+automatically become part of its transactional interface.
 
-## 入口
+## Entry points
 
-先运行 `python scripts/sw_preflight.py`。原生操作需要 Windows、Python COM 依赖，以及已打开且有合法许可的 SolidWorks。
-依赖缺失时说明所需组件；本技能安装和运行不包含 SolidWorks 软件或许可证。
+Run `python scripts/sw_preflight.py` first. Native operations require Windows, Python COM dependencies,
+and an open, licensed SolidWorks instance. Explain missing dependencies before installing them.
+This skill does not include SolidWorks software or a license.
 
-统一入口：
+Unified CLI:
 
 ```powershell
 python scripts/sw_modeling.py validate --request examples/modeling_create.json
@@ -22,63 +24,80 @@ python scripts/sw_modeling.py inspect --source C:\CAD\part.sldprt
 python scripts/sw_modeling.py checkpoints --root output/create-001/checkpoints
 ```
 
-`validate` 不连接 CAD。`inspect` 仅读取已打开的指定零件，不激活或打开文件。
-`run` 的输出目录必须是新目录。完整请求示例与使用说明见 [README](README.md)。
+`validate` does not connect to CAD. `inspect` reads the specified part only if it is already open;
+it does not activate or open files. `run` requires a new output directory.
+See [README](README.md) for complete requests and usage.
 
-## 选择模式
+## Choose a mode
 
-- **create**：把需求整理为旧版 operation plan；支持 `sketch_rectangle`、`sketch_circles`、`extrude_boss`、`extrude_cut`。
-  规格与验收要求来自用户给定尺寸、实测或明确标注的设计假设。完整参数规划可按需读
-  [VibeCAD](subskills/solidworks-vibecad/SKILL.md)。
-- **edit**：给出源 `SLDPRT` 和精确 `dimension@feature` 名称；支持当前配置下正线性驱动尺寸的 `set_dimension`。
-  可先用 `inspect` 的 `dimensions` 查真实名称。源文件有未保存修改时停止，避免混淆磁盘快照与内存模型。
-- **restore**：给出检查点根目录和 ID，验证文件摘要后复制至新文件，再由 SolidWorks 重开核对几何、特征、尺寸和草图。
+- **create**: Express the request as an existing operation plan using `sketch_rectangle`, `sketch_circles`,
+  `extrude_boss`, and `extrude_cut`. Specifications and acceptance criteria must come from user-supplied
+  dimensions, measurements, or explicitly recorded design assumptions. For detailed parameter planning,
+  read [VibeCAD](subskills/solidworks-vibecad/SKILL.md) as needed.
+- **edit**: Supply the source `SLDPRT` and exact `dimension@feature` name. `set_dimension` supports positive
+  linear driving dimensions in the current configuration. Use `inspect` and its `dimensions` field to
+  discover actual names. Stop if the source has unsaved changes so the disk snapshot is not confused
+  with the in-memory model.
+- **restore**: Supply the checkpoint root and ID, verify the file digest, copy it to a new file, then reopen
+  it in SolidWorks to compare geometry, features, dimensions, and sketches.
 
-修改与恢复仅支持无外部依赖的单配置零件。原件和原会话中的文档作为只读保护对象；
-所有写入都发生在本次任务自有的新文档或磁盘副本中。
+Editing and recovery support only single-configuration parts without external dependencies.
+Protect source files and documents from the original session as read-only. All writes must target
+new documents or disk copies owned by the current task.
 
-## 验收与失败处理
+## Acceptance and failure handling
 
-1. create/edit 请求必须有可测量的最终几何要求；不能把空条件、保存成功或截图非空作为规格通过。
-2. 每个通过验收的步骤保存工作件，并生成不可变检查点：原生文件、SHA-256、测量上下文与步骤信息。
-3. 孔位、孔径、实体数、体积及包围盒按明确公差核对。包围盒为 SW 近似数据，不当作精密尺寸链证明。
-4. 交付检查普通及吸收草图的完全定义、驱动尺寸、特征错误和 STEP 独立重开结果；同时查看四视图，确认设计意图。
-5. 修改失败时停止后续步骤，从最后完整检查点恢复到新副本并测量验证。
-   `status=recovered` 表示恢复成功但原任务失败，`task_succeeded=false`，CLI 返回 2。
-   没有有效检查点或恢复证据不足时返回失败；不缩孔、减厚或删除必需特征来通过验收。
+1. Create/edit requests must include measurable final geometry requirements. Empty criteria, a successful
+   save, or a nonblank screenshot cannot establish that the specification passed.
+2. Save the working part after each accepted step and create an immutable checkpoint containing the native
+   file, SHA-256, measured context, and step metadata.
+3. Check hole positions, diameters, body counts, volume, and bounds against explicit tolerances.
+   SolidWorks bounding boxes are approximate and cannot prove precision dimension chains.
+4. Before delivery, audit full definition of ordinary and absorbed sketches, driving dimensions, feature
+   errors, and independent STEP reopening. Inspect the four views to confirm design intent.
+5. On an edit failure, stop later steps, restore the last complete checkpoint to a new copy, and verify it
+   by measurement. `status=recovered` means recovery passed while the original task failed:
+   `task_succeeded=false`, CLI exit code 2. Fail if no valid checkpoint or sufficient recovery evidence
+   exists. Do not shrink holes, reduce thickness, or remove required features to force acceptance.
 
-输出以 `modeling_report.json` 为准。报告需检查 `status`、`task_succeeded`、`source_protection`、
-`delivery` 或 `recovery`。恢复工件不冒充原需求的成功交付。
+Use `modeling_report.json` as the result record. Check `status`, `task_succeeded`, `source_protection`,
+and `delivery` or `recovery`. Do not present a recovered artifact as successful delivery of the original request.
 
-## 专项路由
+## Specialist routing
 
-统一白名单以外的任务，按需复用随包专项脚本，并明确其不具有本入口的自动检查点保证：
+For tasks outside the unified operation allowlist, use the included specialist scripts as appropriate.
+Explain that those workflows do not inherit this entry point's automatic checkpoint guarantees.
 
-| 任务 | 先读 |
+| Task | Read first |
 |---|---|
-| 多圆角/倒角 CNC 零件 | [CNC 专项](subskills/solidworks-fillet-chamfer-cnc/SKILL.md) |
-| 螺纹孔与螺纹表达 | [螺纹专项](subskills/solidworks-threaded-holes/SKILL.md) |
-| 原生孔向导、原生筋 | [孔槽](references/complex-hole-features.md)、[筋](references/native-ribs.md) |
-| 装配、可拖动配合、运动算例 | [装配](references/assembly.md)、[Motion](references/motion-study.md) |
-| 工程图、BOM、多格式交付 | [工程图](references/drawing.md)、[导出](references/export.md) |
-| 其他继承能力与执行经验 | [上游工作流](references/upstream-automation-guide.md) |
+| CNC parts with many fillets/chamfers | [CNC workflow](subskills/solidworks-fillet-chamfer-cnc/SKILL.md) |
+| Threaded holes and thread representation | [Thread workflow](subskills/solidworks-threaded-holes/SKILL.md) |
+| Native Hole Wizard and ribs | [Hole features](references/complex-hole-features.md), [ribs](references/native-ribs.md) |
+| Assemblies, draggable mates, motion studies | [Assembly](references/assembly.md), [Motion](references/motion-study.md) |
+| Drawings, BOM, multi-format delivery | [Drawing](references/drawing.md), [export](references/export.md) |
+| Other inherited capabilities and execution lessons | [Upstream workflows](references/upstream-automation-guide.md) |
 
-[capabilities.yaml](capabilities.yaml) 区分继承能力与新入口的验证范围，未验证功能不得外推。
-未封装的 SW API 先按 [API 查证](references/api-lookup.md) 核实，再实现并实机验收。
-螺旋参考线、装饰螺纹与实体牙型分别说明；动画、真实配合与受力验证分别验收。
+[capabilities.yaml](capabilities.yaml) separates inherited capabilities from the new entry point's
+validated scope. Do not extrapolate to unverified features. For an unwrapped SolidWorks API, follow
+[API lookup](references/api-lookup.md) before implementation and live acceptance testing.
+Distinguish helical reference curves, cosmetic threads, and solid thread geometry. Validate animation,
+real mates, and load analysis separately.
 
-## 同题回归
+## Regression suite
 
 ```powershell
 python scripts/sw_modeling_regression.py validate
 python scripts/sw_modeling_regression.py run --out-dir output/regression-001
 ```
 
-四题依次验证：创建四孔板、厚度 8→12 mm、实际改到 14 mm 后因错误期望而恢复至 12 mm、
-独立 Python 进程恢复检查点。使用解析体积、四孔规格及位置、约束、导出重开和源文件哈希检查。
-离线测试与真实 SolidWorks 回归分开记录，测试数量不等同工程认证。
+The four cases create a four-hole plate, change its thickness from 8 to 12 mm, actually change it to
+14 mm before an intentionally incorrect expectation triggers recovery to 12 mm, and restore a checkpoint
+in an independent Python process. Checks include analytical volume, all four hole specifications and
+positions, constraints, reopened exports, and source file hashes. Record offline tests and native
+SolidWorks regression separately. Test counts do not constitute engineering certification.
 
-## 许可与来源
+## License and provenance
 
-随包基础自动化模块派生自 MIT 许可的 `wzyn20051216/solidworks-automation-skill`。
-保留 [LICENSE](LICENSE) 与 [NOTICE](NOTICE.md)，公开报告和例子使用本次生成的样件，不包含用户项目模型。
+The included automation foundation derives from the MIT-licensed `wzyn20051216/solidworks-automation-skill`.
+Preserve [LICENSE](LICENSE) and [NOTICE](NOTICE.md). Public reports and examples use fixtures generated
+for this work and exclude user project models.

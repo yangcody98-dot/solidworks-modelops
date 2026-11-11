@@ -1,20 +1,20 @@
-# CNC 多圆角/倒角建模经验
+# Lessons from CNC fillet and chamfer modeling
 
-## 这次学到的事
+## Findings from the validation case
 
-本次“CNC 铝合金安装座”验证表明，SolidWorks COM 自动化可以稳定生成多圆角/倒角模型，但必须控制建模顺序和选边方法。成功模型包含底板、中心凸台、安装孔、沉孔、定位孔、中心长槽、减重口袋、真实 Fillet 和 Chamfer 特征，并通过 `sw_review` 规则审查。
+The CNC aluminum mounting-base case demonstrated that SolidWorks COM automation can generate parts with many fillets and chamfers when feature order and edge selection are controlled. The successful model included a base plate, central boss, mounting holes, counterbores, locating holes, a central long slot, lightening pockets, and native Fillet and Chamfer features. It passed the `sw_review` rule checks.
 
-最重要的结论：
+Key findings:
 
-- 圆角/倒角多的零件，要先让主体拓扑简单，再逐步增加复杂度。
-- 大圆角和外轮廓倒角放在孔槽之前，比放在所有切除之后稳定。
-- 用实体边对象选择比用自动边名或坐标点击稳定。
-- 每个 SolidWorks 特征返回值都要检查 `None` / `False`，失败就立刻中止或降级。
-- 同名输出文件如果已在 SolidWorks 打开，保存会失败，典型表现为 `SaveAs` 错误码 `1`。
+- Keep the main body's topology simple, then add complexity gradually.
+- Large fillets and outer-edge chamfers were more reliable before hole and slot cuts than after all cuts.
+- Selecting edge objects was more reliable than automatic edge names or coordinate picks.
+- Check every SolidWorks feature result for `None` or `False`; stop or use an explicitly recorded fallback on failure.
+- Saving can fail if a same-name output is already open in SolidWorks, commonly with `SaveAs` error code `1`.
 
-## 推荐 API 和封装
+## Recommended APIs and wrappers
 
-必须优先调用父技能已有封装：
+Prefer the parent skill's existing wrappers:
 
 ```python
 from sw_session import SolidWorksSession
@@ -24,7 +24,7 @@ from sw_review import run_review
 from sw_appearance import set_document_appearance
 ```
 
-常用 SolidWorks API：
+Frequently used SolidWorks APIs:
 
 ```python
 model.FeatureManager.FeatureExtrusion3(...)
@@ -40,11 +40,11 @@ curve.IsCircle()
 curve.CircleParams()
 ```
 
-pywin32 下 `GetStartVertex`、`GetEndVertex`、`FirstFeature` 等成员可能表现为伪可调用属性，读取时用 `get_com_member()`。
+With pywin32, members such as `GetStartVertex`, `GetEndVertex`, and `FirstFeature` may appear as pseudo-callable properties. Read them through `get_com_member()`.
 
-## 稳定选边模式
+## Reliable edge selection
 
-不要依赖 `Edge1`、`Edge2` 或空名称坐标选择。推荐模式：
+Avoid `Edge1`, `Edge2`, and empty-name coordinate selection. Recommended pattern:
 
 ```python
 def edge_points(edge):
@@ -74,64 +74,64 @@ def select_edges(model, predicate):
     return count
 ```
 
-按中点坐标、方向、是否直线/圆边、圆心半径分类边线。
+Classify edges by midpoint, direction, line or circle type, center, and radius.
 
-## 推荐特征顺序
+## Recommended feature order
 
-用于 CNC 安装座、连接块、机加工基座：
+For CNC mounting bases, connector blocks, and machined bases:
 
-1. 基础矩形底板拉伸。
-2. 顶部凸台拉伸。
-3. 外轮廓大圆角和顶/底边倒角。
-4. 减重口袋。
-5. 贯穿安装孔。
-6. 沉孔/沉头台阶。
-7. 定位孔。
-8. 中心长圆槽。
-9. 孔口小倒角。
-10. 保存、导出 STEP、审查预览。
+1. Extrude a rectangular base plate.
+2. Extrude the top boss.
+3. Add large outer-profile fillets and top and bottom edge chamfers.
+4. Cut lightening pockets.
+5. Cut through mounting holes.
+6. Add counterbore or countersink steps.
+7. Add locating holes.
+8. Cut the central obround slot.
+9. Add small hole-mouth chamfers.
+10. Save, export STEP, and inspect the previews.
 
-如果步骤 3 放在孔槽之后，SolidWorks 可能在复杂拓扑上求解很久。若必须后置，先减少半径、减少边数，逐类测试。
+Placing step 3 after the holes and slots may cause lengthy solving on complex topology. If it must come later, reduce the radius and selected edge count first, and test each edge category separately.
 
-## 半径和降级策略
+## Radii and fallback strategy
 
-保守默认值：
+Conservative defaults:
 
-- 底板立角大圆角：R6-R10
-- 凸台立角圆角：R3-R6
-- 外轮廓倒角：C0.8-C2
-- 凸台顶面倒角：C0.5-C1
-- 孔口倒角：C0.3-C0.8
+- Large vertical base-plate corner fillets: R6-R10
+- Vertical boss corner fillets: R3-R6
+- Outer-edge chamfers: C0.8-C2
+- Boss top-edge chamfers: C0.5-C1
+- Hole-mouth chamfers: C0.3-C0.8
 
-降级顺序：
+Fallback order:
 
-1. 减小半径/倒角距离。
-2. 减少一次选择的边数。
-3. 把大圆角前置到孔槽之前。
-4. 跳过槽口/口袋底部小圆角，记录为 `0`。
-5. 保留主体、孔槽、关键外轮廓圆角，优先完成可导出的模型。
+1. Reduce the radius or chamfer distance.
+2. Select fewer edges per operation.
+3. Move large fillets before the hole and slot cuts.
+4. Omit small slot-mouth or pocket-floor fillets and record their value as `0`.
+5. Preserve the main body, holes, slots, and essential outer-profile fillets, then complete an exportable model.
 
-## 常见故障
+## Common failures
 
-### 长圆槽的实际宽度只有要求的一半
+### An obround slot is half the requested width
 
-`sw_part.sketch_slot(..., radius)` 的输入是端圆半径，但原生
-`CreateSketchSlot(SlotCreationType, SlotLengthType, Width, ...)` 接收完整槽宽。
-必须传 `SlotLengthType=0`（两端圆心距离）及 `Width=2*radius`，不能把半径同时传给这两项。
-SW2025 实测 42×14 槽：两端圆心距28、R7，贯穿34的去除体积为
-`34*(28*14+49*pi)=18561.893361 mm³`。仅检查特征创建成功无法发现半宽错误，需用体积及 B-Rep 回读验收。
+`sw_part.sketch_slot(..., radius)` takes the end-arc radius, while native
+`CreateSketchSlot(SlotCreationType, SlotLengthType, Width, ...)` takes the full slot width.
+Pass `SlotLengthType=0` for the distance between end-arc centers and `Width=2*radius`; do not pass the radius for both arguments.
+The SW2025 live-tested 42×14 slot had center distance 28, R7, and a through depth of 34, giving removed volume
+`34*(28*14+49*pi)=18561.893361 mm³`. A non-null feature alone cannot detect a half-width slot; validate volume and B-Rep readback.
 
-### 拉伸返回 None
+### Extrusion returns None
 
-常见原因是复杂圆角草图没有闭合。改用简单矩形草图拉伸，再对立角做真实 Fillet。
+A common cause is an unclosed complex filleted sketch. Extrude a simple rectangle, then add native Fillet features to its vertical corners.
 
-### 圆角/倒角卡很久
+### Fillets or chamfers take too long
 
-多半是切孔后拓扑复杂、半径过大或选边过宽。先单独测试每一类边：底板立角、凸台立角、顶边、底边、孔口。
+Likely causes include complex post-cut topology, excessive radius, or overly broad edge selection. Test base-plate vertical edges, boss vertical edges, top edges, bottom edges, and hole mouths separately.
 
-### SaveAs 错误码 1
+### SaveAs error code 1
 
-目标文件可能已经在 SolidWorks 中打开。新建前关闭同名文档：
+The target may already be open in SolidWorks. Close a same-name task-owned document before creating a replacement; do not close the user's original document:
 
 ```python
 try:
@@ -140,18 +140,18 @@ except Exception:
     pass
 ```
 
-### 预览偏透明或颜色怪
+### The preview looks transparent or has unexpected colors
 
-不要把外观问题当作几何失败。先确认审查报告和预览非空。外观要求高时使用 `set_document_appearance(model, "silver")` 或拆装配体分组件上色。
+Check geometry separately from appearance. Confirm the review report and nonblank previews first. For controlled appearance, use `set_document_appearance(model, "silver")` or separate components in an assembly and color them individually.
 
-## 审查清单
+## Review checklist
 
-完成后读取 review report，至少确认：
+Read the review report and check at least:
 
 - `evaluation.status`
 - `checks.previews_created`
 - `checks.previews_not_blank`
 - `checks.expected_outputs_exist`
-- `model.features` 中是否有 `Fillet`、`Chamfer`、`Cut` 特征
+- Expected `Fillet`, `Chamfer`, and `Cut` features in `model.features`
 
-若规则审查通过，还要人工看 `isometric` 和 `top` 预览，确认主体比例、孔位、沉孔、长槽、口袋和圆角方向。
+After the rule checks pass, inspect the `isometric` and `top` previews for proportions, hole positions, counterbores, long slots, pockets, and fillet orientation.

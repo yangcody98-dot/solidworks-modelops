@@ -1,11 +1,11 @@
-# 多 Agent Provider 架构
+# Multiple agent provider architecture
 
-## 目标
+## Goal
 
-CAD Studio 面向不同用户环境，不绑定单一模型或 CLI。所有 Provider 共用一份 CAD 任务协议、审批策略、知识检索、产物账本和复核门禁，差异只保留在命令编译与结果解析层。
+CAD Studio supports different user environments without binding to one model or CLI. All providers share the CAD task protocol, approval policy, knowledge retrieval, artifact ledger, and review gates. Provider-specific behavior stays in command compilation and result parsing.
 
 ```text
-用户任务
+User task
   -> UnifiedAutomationJob
   -> Policy Gate
   -> Provider Adapter
@@ -13,33 +13,33 @@ CAD Studio 面向不同用户环境，不绑定单一模型或 CLI。所有 Prov
   -> UnifiedAgentResult
   -> Artifact Ledger
   -> CAD/B-Rep/Motion Reviewer Gate
-  -> 本地交付目录
+  -> Local delivery directory
 ```
 
-## Provider 状态不能混用
+## Keep provider states distinct
 
-界面和日志必须分别表达以下状态：
+The interface and logs must distinguish these states:
 
-| 状态 | 证据 | 能否表述为已连接 |
+| State | Evidence | May it be described as connected? |
 |---|---|---|
-| 未安装 | 找不到 CLI 入口或 `--version` 失败 | 否 |
-| 已安装 | `--version` 成功 | 否 |
-| 认证失败 | 官方认证状态命令返回失败 | 否 |
-| 认证待验证 | CLI 没有低成本认证查询命令 | 否，首个真实任务验证 |
-| 认证已验证 | 官方认证命令成功 | 可以表述为认证已验证 |
-| 执行已验证 | 真实任务按统一协议返回结构化结果 | 可以表述为该次任务执行成功 |
+| Not installed | CLI entry point missing or `--version` fails | No |
+| Installed | `--version` succeeds | No |
+| Authentication failed | Official authentication-status command fails | No |
+| Authentication unverified | CLI has no inexpensive authentication query | No; verify with the first real task |
+| Authentication verified | Official authentication command succeeds | Describe authentication as verified |
+| Execution verified | A real task returns a structured result under the shared protocol | Describe that specific task as successfully executed |
 
-CLI 存在、环境变量存在、CC Switch 中有 Provider 配置，都不能单独证明模型请求可用。Provider 自报成功也不能证明 SolidWorks/AutoCAD 产物正确。
+A CLI executable, an environment variable, or provider configuration in CC Switch does not establish that model requests work. A provider's success report does not establish that its SolidWorks/AutoCAD artifacts are correct.
 
-## 统一任务协议
+## Shared task protocol
 
-任务类型使用 `agent_task`，执行器使用 `agent`：
+Use `agent_task` as the task type and `agent` as the executor:
 
 ```json
 {
   "kind": "agent_task",
   "executor": "agent",
-  "objective": "创建带沉孔和半圆槽的安装板",
+  "objective": "Create a mounting plate with counterbores and an obround slot",
   "skillPath": "C:/Users/user/.codex/skills/solidworks-automation/SKILL.md",
   "uiConfig": {
     "agentRuntime": {
@@ -52,15 +52,15 @@ CLI 存在、环境变量存在、CC Switch 中有 Provider 配置，都不能�
 }
 ```
 
-旧的 `codex_task`、`executor=codex` 只作为兼容入口，进入 Worker 后仍归一到同一执行流程。
+The legacy `codex_task` and `executor=codex` entries remain compatibility aliases; the worker normalizes them to the same execution flow.
 
-## 统一结果协议
+## Shared result protocol
 
-每个 Provider 最终必须生成以下字段：
+Each provider must ultimately return these fields:
 
 ```json
 {
-  "summary": "本轮做了什么",
+  "summary": "Work performed in this run",
   "changedFiles": [],
   "verification": [],
   "risks": [],
@@ -68,41 +68,41 @@ CLI 存在、环境变量存在、CC Switch 中有 Provider 配置，都不能�
 }
 ```
 
-统一结果只是 Agent 执行记录，不是 CAD 验收证据。机械交付仍需独立的文件哈希、B-Rep 尺寸、孔槽定位、预览图、Motion 结果和人工复核记录。
+The shared result records agent execution; it is not CAD acceptance evidence. Mechanical delivery still requires independent file hashes, B-Rep dimensions, hole and slot locations, previews, Motion results, and human review records.
 
-## 当前 Adapter
+## Current adapters
 
-| Provider | 协议 ID | 非交互入口 | 结构化输出来源 |
+| Provider | Protocol ID | Noninteractive entry point | Structured output source |
 |---|---|---|---|
-| Codex | `codex-exec-v1` | `codex exec` | `--output-schema` + 输出文件 |
+| Codex | `codex-exec-v1` | `codex exec` | `--output-schema` and output file |
 | Claude Code | `claude-print-v1` | `claude -p` | `--output-format json` + `--json-schema` |
-| Gemini CLI | `gemini-headless-v1` | `gemini -p` | JSON response 包装层 |
-| OpenCode | `opencode-jsonl-v1` | `opencode run` | JSONL 文本事件 |
+| Gemini CLI | `gemini-headless-v1` | `gemini -p` | JSON response wrapper |
+| OpenCode | `opencode-jsonl-v1` | `opencode run` | JSONL text events |
 
-实现位于：
+Implementation:
 
 - `apps/desktop/cad_workbench/agent_providers.py`
 - `apps/desktop/cad_workbench/queue_worker.py`
 - `apps/workbench-ui/src-tauri/src/lib.rs`
 
-## 新增 Provider 的步骤
+## Adding a provider
 
-1. 在 `SUPPORTED_PROVIDER_IDS` 和前端 `AgentProviderId` 中登记稳定 ID。
-2. 只使用该 CLI 官方文档确认的非交互参数，不凭记忆猜选项。
-3. 在 `build_provider_command()` 中把统一任务编译为 Provider 命令。
-4. 在 `parse_provider_result()` 中解析原生包装层，最终强制收敛到统一结果字段。
-5. 增加安装、认证、超时、非 JSON、缺字段和取消任务测试。
-6. 在桌面健康检查中区分安装、认证和执行验证，不新增含糊的“已连接”布尔值。
-7. 真实执行最小探针，确认退出码、stdout/stderr、取消和超时行为。
+1. Register a stable ID in `SUPPORTED_PROVIDER_IDS` and the frontend `AgentProviderId`.
+2. Use only noninteractive arguments confirmed by the CLI's official documentation; do not guess options from memory.
+3. Compile shared tasks into provider commands in `build_provider_command()`.
+4. Parse the native wrapper in `parse_provider_result()` and normalize the result to the shared fields.
+5. Add tests for installation, authentication, timeouts, non-JSON output, missing fields, and cancellation.
+6. Distinguish installation, authentication, and execution verification in desktop health checks; do not add an ambiguous connected Boolean.
+7. Run a minimal real probe to verify exit codes, stdout/stderr, cancellation, and timeout behavior.
 
-## 可观察执行过程
+## Observable execution
 
-软件可以展示计划、公开步骤、工具调用、审批、日志、文件变化和复核结果。不要承诺或伪造模型隐藏思维链；用户真正需要的是可审计的执行轨迹和可继续追问的对话上下文。
+The application can show plans, public steps, tool calls, approvals, logs, file changes, and review results. Do not promise or fabricate hidden model reasoning. Users need an auditable execution trace and conversation context they can continue questioning.
 
-## 安全边界
+## Safety boundaries
 
-- Provider Adapter 不直接暴露任意 Python、PowerShell 或 VBA 工具。
-- CAD COM 调用串行化，避免多个 Agent 同时操作同一桌面会话。
-- 外部网络、云 RAG 和危险本地 CAD 操作进入 Policy Gate。
-- API Key 不写入任务 JSON、日志或前端持久化；只记录脱敏状态或环境变量名。
-- Provider 输出必须经过 schema、Artifact Ledger 和 Reviewer Gate，不能直接宣布交付成功。
+- Provider adapters do not directly expose arbitrary Python, PowerShell, or VBA tools.
+- Serialize CAD COM calls so multiple agents cannot operate the same desktop session concurrently.
+- External network access, cloud RAG, and hazardous local CAD actions pass through the Policy Gate.
+- Never write API keys into task JSON, logs, or frontend storage; record only redacted status or environment variable names.
+- Provider output must pass schema validation, the Artifact Ledger, and the Reviewer Gate before delivery can be reported as successful.

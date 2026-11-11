@@ -1,470 +1,204 @@
-# CAD 自动化交付工作台 MVP 产品规格
+# CAD Automation Delivery Workbench MVP — historical specification
 
-版本: v0.1  
-日期: 2026-07-25  
-关联调研: `docs/market-research-2026.md`
+Version: v0.1
 
-## 1. 产品定位
+Date: 2026-07-25
+Related research: `docs/market-research-2026.md`
 
-产品名暂定:
+> Inherited upstream product proposal. The requirements, defaults, targets, UI, and schemas below describe that historical MVP, not delivered ModelOps functionality. Its v0.1 label belongs to the original proposal and does not expand the ModelOps v0.1 pilot contract. See [README](../README.md), [capabilities.yaml](../capabilities.yaml), and [VALIDATION.md](VALIDATION.md) for current scope and evidence.
 
-```text
-CAD 自动化交付工作台
-```
+## 1. Position and success criteria
 
-一句话:
+Working name: CAD Automation Delivery Workbench. The proposed local workflow served mechanical engineers and 3D-print prototyping users: structured parameters → actual enclosure geometry → engineering drawings → rule review → archived delivery. It did not propose a new CAD kernel, cloud collaboration, or full PLM.
 
-```text
-面向机械工程师和 3D 打印打样用户，把常见结构件从参数输入到建模、出图、规范复核和交付归档做成一个本地软件流程。
-```
+Users should create a `3d_print_shell` project, specify outer dimensions/walls/holes/slots/bosses/interfaces, create actual SolidWorks cuts, generate SolidWorks Drawing or AutoCAD drawings, pass P0 review, and receive a complete package.
 
-第一版不做新 CAD，不做云端协同，不做完整 PLM。第一版只解决一个真实闭环:
+| Metric | Proposed MVP target, not an observed result |
+| --- | --- |
+| Project creation to confirmed parameters | Within 5 minutes |
+| Modeling script execution | Within 10 minutes |
+| Initial drawing | Within 5 minutes |
+| Missing P0 drawing annotations | 0 |
+| Traceability | Every output recorded in the manifest |
+| Failure diagnosis | Stage, cause, and recommendation for every failure |
 
-```text
-3D 打印外壳自动交付
-```
+## 2. Technical boundary and users
 
-## 2. MVP 成功标准
+All CAD, references, parameters, and reviews were to remain local, without a rented server or cloud queue. Proposed stack: PySide6/Qt UI; Python with pywin32/comtypes; SolidWorks COM and AutoCAD COM; local JSON/Markdown/directories; PyInstaller packaging; GitHub updates.
 
-用户能在本地 Windows 电脑上完成:
+Out of scope: geometry kernel, browser service, collaboration/accounts, arbitrary fully automatic complex CAD, enterprise PDM/PLM, and a general Python/VBA/AutoLISP execution interface for ordinary users.
 
-1. 新建一个 3D 打印外壳项目。
-2. 填写外形、壁厚、孔、槽、螺丝柱、接口等参数。
-3. 调用 SolidWorks 自动生成真实切除的 3D 模型。
-4. 调用 SolidWorks Drawing 或 AutoCAD 生成工程图。
-5. 自动检查图纸是否满足 P0 规范。
-6. 输出一个完整交付包。
+Primary users were individual mechanical designers, automation engineers, makers, and prototype users. Priorities were actual openings, printability, familiar Chinese drafting conventions, complete feature locations, and usable manufacturing/customer files. Required environment: Windows; SolidWorks installed and launched once; AutoCAD installed and launched once when using that drawing route; Python 3.10+; `pywin32`/`comtypes`. AutoCAD could be omitted for SolidWorks Drawing-only use.
 
-### 验收指标
+## 3. Information architecture and workflow
 
-| 指标 | MVP 目标 |
-|---|---|
-| 项目创建到参数确认 | 5 分钟内 |
-| 建模脚本执行 | 10 分钟内 |
-| 工程图初稿生成 | 5 分钟内 |
-| P0 图纸漏标 | 必须为 0 |
-| 输出文件可追溯 | 每个文件在 manifest 中有记录 |
-| 失败可定位 | 每个失败必须给出阶段、原因、建议 |
+The proposed layout had left navigation, a central task form, and right review/output/log panels. Navigation: Projects, New Project, Parameter Templates, Generate Model, Generate Drawing, Review, Delivery, Skills. Actions: Save Parameters, Generate Model, Generate Drawing, Review, Open Output.
 
-## 3. 技术边界
+### Project creation and references
 
-### 必须本地运行
+Collect project name, `3d_print_shell`, output directory, default unit `mm`, default GB/T-style drawing, default AutoCAD DWG/DXF exports, and optional native SolidWorks drawing. Create the project directory, `project.json`, `inputs/`, `outputs/`, `reviews/`, `previews/`, `logs/`, and check CAD/Python dependencies.
 
-不租服务器，不依赖云端任务队列。所有 CAD 文件、参考图、参数和复核报告都保存在用户本机。
+Accept `jpg`, `png`, `jpeg`, and `bmp` for appearance/location reference. Images cannot establish manufacturing dimensions. Every hole, slot, interface, fluid port, screw hole, and boss needs specification and location in the parameter form.
 
-推荐技术栈:
+### Parameters and modeling
 
-```text
-桌面界面: PySide6 / Qt
-自动化脚本: Python + pywin32/comtypes
-CAD 控制: SolidWorks COM + AutoCAD COM
-项目数据: 本地 JSON / Markdown / 文件夹
-打包: PyInstaller
-版本更新: GitHub 仓库
-```
+Forms are primary; prompts supplement them. Require envelope, wall/bottom thickness, fillets/chamfers, holes/slots, bosses/mounts, drawing settings, and technical requirements. Read `parameters.json`, run or generate a SolidWorks builder, form the shell via shelling/Boolean cuts, cut all openings, add bosses/ribs/fillets/chamfers, save SLDPRT, export STEP/STL, and review.
 
-### 不做的功能
+Acceptance requires nonempty geometry, matching envelope, actual wall thickness, feature quantities matching parameters, actual cuts rather than decorative sketches, and a nonempty plausibly sized STL.
 
-- 不做 CAD 几何内核。
-- 不做浏览器网页服务。
-- 不做多人协作。
-- 不做账号系统。
-- 不做任意复杂零件的全自动生成承诺。
-- 不做企业 PDM/PLM 集成。
-- 不开放任意 Python/VBA/AutoLISP 执行口给普通用户。
+### Drawings and review
 
-## 4. 第一版用户画像
+SolidWorks Drawing would provide orthographic/isometric views, dimensions, and PDF; AutoCAD would provide DWG/DXF, hole/slot tables, and title blocks. The historical proposal prioritized AutoCAD for Chinese file-format/drafting needs, subject to actual backend availability.
 
-### 主要用户
+Required contents: border/title, units/scale, front/top/right or necessary section, isometric reference, total dimensions, wall/bottom thickness, hole/slot specifications/quantities/locations, technical requirements, and a feature schedule.
 
-个人机械设计师、自动化设备工程师、创客、3D 打印打样用户。
+Machine review: file existence, reasonable DWG/DXF bounds, layers, actual dimension count, hole/slot counts, title/table presence, complete `review.json` schema. Visual review: dimension obstruction, crossed-view leaders, overlapping text, title-block intrusion, readable locations, and accepted drafting conventions.
 
-他们最关心:
+## 4. Page and field specifications
 
-- 是否真的能开孔。
-- 是否能直接 3D 打印。
-- 图纸是否按中国工程师习惯出。
-- 孔位、槽位、接口是否标完整。
-- 文件是否能直接发给加工/打印/客户。
+### Project list
 
-### 使用前提
+Show recent projects, name, type, modified time, last state, and output path. Support new/open/output-folder/duplicate. Deleting a record must not delete source files unless the user explicitly selects file deletion.
 
-用户本机需要:
+### New project
 
-- Windows。
-- SolidWorks 已安装并至少启动过一次。
-- AutoCAD 已安装并至少启动过一次，若只做 SolidWorks Drawing 可暂不强制。
-- Python 3.10+。
-- `pywin32` / `comtypes`。
+| Field | Type | Default | Required | Meaning |
+| --- | --- | --- | --- | --- |
+| project_name | text | Empty | Yes | Project name |
+| project_type | select | 3D-print enclosure | Yes | Only MVP project type |
+| output_root | folder | User selection | Yes | Output root |
+| unit | select | mm | Yes | mm only initially |
+| drawing_standard | select | GB/T style | Yes | Later enterprise templates |
+| need_dwg | checkbox | true | No | DWG export |
+| need_dxf | checkbox | true | No | DXF export |
+| need_pdf | checkbox | true | No | PDF export |
+| need_stl | checkbox | true | No | STL export |
+| need_step | checkbox | true | No | STEP export |
 
-## 5. 信息架构
+### Envelope
 
-桌面软件第一版采用左侧导航 + 中央任务表单 + 右侧复核/输出面板。
+| Field | Type | Unit | Required | Validation |
+| --- | --- | --- | --- | --- |
+| outer_length | number | mm | Yes | > 0 |
+| outer_width | number | mm | Yes | > 0 |
+| outer_height | number | mm | Yes | > 0 |
+| wall_thickness | number | mm | Yes | >= 0.8 |
+| bottom_thickness | number | mm | Yes | >= 0.8 |
+| corner_radius | number | mm | No | >= 0 |
+| edge_chamfer | number | mm | No | >= 0 |
+| shell_open_direction | select | — | Yes | top / bottom / side |
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│ CAD 自动化交付工作台                                            │
-├──────────────┬──────────────────────────┬──────────────────────┤
-│ 项目          │ 任务: 3D 打印外壳          │ 复核状态              │
-│ 新建项目      │                          │ P0 规范检查            │
-│ 参数模板      │ 外形尺寸 / 开孔 / 螺丝柱   │ 输出文件              │
-│ 生成模型      │ 工程图 / 技术要求          │ 执行日志              │
-│ 生成图纸      │                          │                      │
-│ 规范复核      │ [保存参数] [生成模型]      │ [打开输出目录]        │
-│ 输出交付      │ [生成图纸] [一键复核]      │                      │
-│ Skills 管理   │                          │                      │
-└──────────────┴──────────────────────────┴──────────────────────┘
-```
+### Printing
 
-## 6. 核心流程
+| Field | Type | Unit | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| print_process | select | — | FDM | FDM / SLA / SLS; prioritize FDM |
+| nozzle_diameter | number | mm | 0.4 | FDM nozzle |
+| hole_compensation | number | mm | 0.2 | Suggested diameter allowance |
+| fit_clearance | number | mm | 0.3 | Assembly clearance |
+| min_wall_warning | number | mm | 1.2 | Warn below this threshold |
 
-### 6.1 新建项目
-
-用户输入:
-
-- 项目名称。
-- 项目类型: `3d_print_shell`。
-- 输出目录。
-- 单位: 默认 `mm`。
-- 图纸风格: 默认 `GB/T 风格`。
-- 是否需要 AutoCAD DWG/DXF: 默认需要。
-- 是否需要 SolidWorks 原生工程图: 可选。
-
-系统动作:
-
-1. 创建项目目录。
-2. 写入 `project.json`。
-3. 创建 `inputs/`、`outputs/`、`reviews/`、`previews/`、`logs/`。
-4. 检查 SolidWorks/AutoCAD/Python 依赖。
-
-### 6.2 上传参考图
-
-支持:
-
-- `jpg`
-- `png`
-- `jpeg`
-- `bmp`
-
-用途:
-
-- 作为外观参考。
-- 辅助填写孔位和接口位置。
-- 不直接作为可制造尺寸依据。
-
-规则:
-
-参考图不能替代尺寸。任何孔、槽、接口、水口、螺丝孔、螺丝柱都必须在参数表中有规格和定位。
-
-### 6.3 填写参数
-
-采用结构化表单，prompt 只作为补充说明。
-
-必填区域:
-
-- 外形尺寸。
-- 壁厚/底厚。
-- 圆角/倒角。
-- 开孔/开槽。
-- 螺丝柱/安装孔。
-- 工程图设置。
-- 技术要求。
-
-### 6.4 生成模型
-
-系统动作:
-
-1. 读取 `parameters.json`。
-2. 生成或调用 SolidWorks 建模脚本。
-3. 建立外壳主体。
-4. 做壳体抽壳或布尔切除。
-5. 对所有孔、槽、接口做真实切除。
-6. 添加螺丝柱、加强筋、圆角/倒角。
-7. 保存 `SLDPRT`。
-8. 导出 `STEP` 和 `STL`。
-9. 执行模型复核。
-
-必须检查:
-
-- 模型非空。
-- 外形尺寸符合参数。
-- 壁厚存在。
-- 孔/槽数量和参数表一致。
-- 孔/槽不是草图装饰线，而是真实切除。
-- STL 文件存在且大小合理。
-
-### 6.5 生成工程图
-
-支持两条路线:
-
-| 路线 | 场景 |
-|---|---|
-| SolidWorks Drawing | 从模型生成三视图/等轴测、尺寸、PDF |
-| AutoCAD DWG/DXF | 生成国内常用 DWG/DXF 工程图、孔槽表、标题栏 |
-
-MVP 优先保证 AutoCAD DWG/DXF 工程图，因为用户明确要求中国常用格式和严格标注规范。
-
-工程图必须包含:
-
-- 图框。
-- 标题栏。
-- 单位。
-- 比例。
-- 主视图。
-- 俯视图。
-- 右视图或必要剖视图。
-- 等轴测参考图。
-- 外形总尺寸。
-- 壁厚/底厚。
-- 孔槽规格和数量。
-- 孔槽定位尺寸。
-- 技术要求。
-- 孔槽明细表。
-
-### 6.6 规范复核
-
-复核分为机器检查和目视检查。
-
-机器检查:
-
-- 文件是否存在。
-- DWG/DXF 包围盒是否合理。
-- 图层是否齐全。
-- 尺寸实体数量是否达标。
-- 孔槽实体数量是否和参数一致。
-- 标题栏是否存在。
-- 孔槽明细表是否存在。
-- review.json schema 是否完整。
-
-目视检查:
-
-- 尺寸线是否压图。
-- 引线是否跨视图。
-- 文字是否重叠。
-- 标题栏是否被侵入。
-- 孔槽定位是否能读懂。
-- 图纸是否像中国机械工程师会接受的样子。
-
-## 7. 页面规格
-
-### 7.1 首页 / 项目列表
-
-显示:
-
-- 最近项目。
-- 项目名称。
-- 类型。
-- 最近修改时间。
-- 最后一次状态。
-- 输出目录。
-
-操作:
-
-- 新建项目。
-- 打开项目。
-- 打开输出目录。
-- 复制项目。
-- 删除项目记录，不删除源文件，除非用户明确选择删除文件。
-
-### 7.2 新建项目页
-
-字段:
-
-| 字段 | 类型 | 默认值 | 必填 | 说明 |
-|---|---|---|---|---|
-| project_name | text | 空 | 是 | 项目名称 |
-| project_type | select | 3D 打印外壳 | 是 | MVP 只有一种 |
-| output_root | folder | 用户选择 | 是 | 输出根目录 |
-| unit | select | mm | 是 | 暂只支持 mm |
-| drawing_standard | select | GB/T 风格 | 是 | 后续可扩展企业模板 |
-| need_dwg | checkbox | true | 否 | 输出 DWG |
-| need_dxf | checkbox | true | 否 | 输出 DXF |
-| need_pdf | checkbox | true | 否 | 输出 PDF |
-| need_stl | checkbox | true | 否 | 输出 STL |
-| need_step | checkbox | true | 否 | 输出 STEP |
-
-### 7.3 参数填写页
-
-#### 外形参数
-
-| 字段 | 类型 | 单位 | 必填 | 校验 |
-|---|---|---|---|---|
-| outer_length | number | mm | 是 | > 0 |
-| outer_width | number | mm | 是 | > 0 |
-| outer_height | number | mm | 是 | > 0 |
-| wall_thickness | number | mm | 是 | >= 0.8 |
-| bottom_thickness | number | mm | 是 | >= 0.8 |
-| corner_radius | number | mm | 否 | >= 0 |
-| edge_chamfer | number | mm | 否 | >= 0 |
-| shell_open_direction | select | - | 是 | top / bottom / side |
-
-#### 3D 打印参数
-
-| 字段 | 类型 | 单位 | 默认 | 说明 |
-|---|---|---|---|---|
-| print_process | select | - | FDM | FDM / SLA / SLS，MVP 优先 FDM |
-| nozzle_diameter | number | mm | 0.4 | FDM 喷嘴 |
-| hole_compensation | number | mm | 0.2 | 孔径放量建议 |
-| fit_clearance | number | mm | 0.3 | 装配间隙 |
-| min_wall_warning | number | mm | 1.2 | 低于则警告 |
-
-#### 孔参数
-
-所有孔必须有:
-
-- 类型。
-- 规格。
-- 数量。
-- 所在面。
-- 基准边。
-- 中心定位。
-
-字段:
-
-| 字段 | 类型 | 单位 | 必填 | 说明 |
-|---|---|---|---|---|
-| id | text | - | 是 | 如 H1 |
-| name | text | - | 是 | 如 显示屏安装孔 |
-| hole_type | select | - | 是 | round / counterbore / countersink / threaded / slot |
-| face | select | - | 是 | front / back / left / right / top / bottom |
-| diameter | number | mm | 条件 | 圆孔直径 |
-| width | number | mm | 条件 | 槽宽 |
-| length | number | mm | 条件 | 槽长 |
-| quantity | number | 个 | 是 | >= 1 |
-| datum_x | select | - | 是 | left / right / centerline |
-| datum_y | select | - | 是 | bottom / top / centerline |
-| center_x | number | mm | 是 | 相对 X 基准 |
-| center_y | number | mm | 是 | 相对 Y 基准 |
-| pitch_x | number | mm | 条件 | 多孔横向节距 |
-| pitch_y | number | mm | 条件 | 多孔纵向节距 |
-| through | checkbox | - | 是 | 是否通孔 |
-| note | text | - | 否 | 工艺备注 |
-
-#### 接口开孔
-
-接口孔属于孔槽硬规则，不能只写文字说明。
-
-常见类型:
-
-- USB-C。
-- DC 圆孔。
-- HDMI。
-- RJ45。
-- 按键孔。
-- 指示灯孔。
-- 屏幕窗口。
-- 水口。
-- 散热槽。
-
-接口字段:
-
-| 字段 | 类型 | 单位 | 必填 |
-|---|---|---|---|
-| id | text | - | 是 |
-| interface_type | select | - | 是 |
-| face | select | - | 是 |
-| cutout_width | number | mm | 条件 |
-| cutout_height | number | mm | 条件 |
-| cutout_diameter | number | mm | 条件 |
-| corner_radius | number | mm | 否 |
-| center_x | number | mm | 是 |
-| center_y | number | mm | 是 |
-| quantity | number | 个 | 是 |
-| clearance | number | mm | 否 |
-
-#### 螺丝柱参数
-
-| 字段 | 类型 | 单位 | 必填 | 说明 |
-|---|---|---|---|---|
-| id | text | - | 是 | 如 B1 |
-| screw_size | select | - | 是 | M2 / M2.5 / M3 / M4 |
-| boss_outer_diameter | number | mm | 是 | 螺丝柱外径 |
-| hole_diameter | number | mm | 是 | 螺丝孔或预埋孔 |
-| boss_height | number | mm | 是 | 螺丝柱高度 |
-| face | select | - | 是 | 所在面 |
-| center_x | number | mm | 是 | X 定位 |
-| center_y | number | mm | 是 | Y 定位 |
-| quantity | number | 个 | 是 | 数量 |
-| rib_enabled | checkbox | - | 否 | 是否加加强筋 |
-
-### 7.4 生成执行页
-
-显示阶段:
+These are proposed configurable process defaults, not universal manufacturing guarantees.
+
+### Holes
+
+Each hole needs type, specification, quantity, face, datum edges, and center location.
+
+| Field | Type | Unit | Required | Meaning |
+| --- | --- | --- | --- | --- |
+| id | text | — | Yes | Example H1 |
+| name | text | — | Yes | Example display mounting hole |
+| hole_type | select | — | Yes | round / counterbore / countersink / threaded / slot |
+| face | select | — | Yes | front / back / left / right / top / bottom |
+| diameter | number | mm | Conditional | Round-hole diameter |
+| width | number | mm | Conditional | Slot width |
+| length | number | mm | Conditional | Slot length |
+| quantity | number | count | Yes | >= 1 |
+| datum_x | select | — | Yes | left / right / centerline |
+| datum_y | select | — | Yes | bottom / top / centerline |
+| center_x | number | mm | Yes | Relative to X datum |
+| center_y | number | mm | Yes | Relative to Y datum |
+| pitch_x | number | mm | Conditional | Horizontal pattern pitch |
+| pitch_y | number | mm | Conditional | Vertical pattern pitch |
+| through | checkbox | — | Yes | Through-hole flag |
+| note | text | — | No | Process note |
+
+### Interface openings
+
+Interface openings follow the same mandatory geometry/dimension rules; descriptive text alone is insufficient. Examples: USB-C, round DC, HDMI, RJ45, button, LED, display, fluid port, ventilation slot.
+
+| Field | Type | Unit | Required |
+| --- | --- | --- | --- |
+| id | text | — | Yes |
+| interface_type | select | — | Yes |
+| face | select | — | Yes |
+| cutout_width | number | mm | Conditional |
+| cutout_height | number | mm | Conditional |
+| cutout_diameter | number | mm | Conditional |
+| corner_radius | number | mm | No |
+| center_x | number | mm | Yes |
+| center_y | number | mm | Yes |
+| quantity | number | count | Yes |
+| clearance | number | mm | No |
+
+### Bosses
+
+| Field | Type | Unit | Required | Meaning |
+| --- | --- | --- | --- | --- |
+| id | text | — | Yes | Example B1 |
+| screw_size | select | — | Yes | M2 / M2.5 / M3 / M4 |
+| boss_outer_diameter | number | mm | Yes | Outer diameter |
+| hole_diameter | number | mm | Yes | Screw/insert hole |
+| boss_height | number | mm | Yes | Height |
+| face | select | — | Yes | Host face |
+| center_x | number | mm | Yes | X location |
+| center_y | number | mm | Yes | Y location |
+| quantity | number | count | Yes | Count |
+| rib_enabled | checkbox | — | No | Add reinforcement ribs |
+
+### Execution and review pages
 
 ```text
 preflight -> build_model -> export_model -> build_drawing -> export_drawing -> review -> package
 ```
 
-每个阶段显示:
+For each stage, show `waiting / running / passed / warning / failed`, start/end times, logs, failure cause, and recommended action. The review page groups model/drawing/printability/package checks. `pass` means deliverable, `warning` needs human confirmation, and `fail` requires rework. Any failed P0 rule forces overall `fail`.
 
-- 状态: waiting / running / passed / warning / failed。
-- 开始时间。
-- 结束时间。
-- 日志摘要。
-- 失败原因。
-- 建议动作。
-
-### 7.5 复核报告页
-
-分四块:
-
-1. 模型复核。
-2. 图纸复核。
-3. 3D 打印复核。
-4. 交付包复核。
-
-状态:
-
-- `pass`: 可交付。
-- `warning`: 可交付但需要人工确认。
-- `fail`: 不可交付，必须返工。
-
-P0 规则失败时，总状态必须为 `fail`。
-
-## 8. 项目目录结构
-
-每个项目保存为独立文件夹:
+## 5. Proposed project directory
 
 ```text
 <output_root>/<project_slug>/
-├── project.json
-├── parameters.json
-├── inputs/
-│   ├── reference_001.png
-│   └── brief.md
-├── generated/
-│   ├── build_model.py
-│   ├── build_drawing.py
-│   └── drawing_plan.json
-├── outputs/
-│   ├── model/
-│   │   ├── <project>.sldprt
-│   │   ├── <project>.step
-│   │   └── <project>.stl
-│   ├── drawing/
-│   │   ├── <project>.dwg
-│   │   ├── <project>.dxf
-│   │   └── <project>.pdf
-│   └── package/
-│       └── <project>_delivery.zip
-├── previews/
-│   ├── model_iso.png
-│   ├── model_front.png
-│   ├── drawing_preview.png
-│   └── package_cover.png
-├── reviews/
-│   ├── model_review.json
-│   ├── drawing_review.json
-│   ├── printability_review.json
-│   └── final_review.json
-├── logs/
-│   └── run_YYYYMMDD_HHMMSS.log
-└── README_交付说明.md
+  project.json
+  parameters.json
+  inputs/reference_001.png
+  inputs/brief.md
+  generated/build_model.py
+  generated/build_drawing.py
+  generated/drawing_plan.json
+  outputs/model/<project>.sldprt
+  outputs/model/<project>.step
+  outputs/model/<project>.stl
+  outputs/drawing/<project>.dwg
+  outputs/drawing/<project>.dxf
+  outputs/drawing/<project>.pdf
+  outputs/package/<project>_delivery.zip
+  previews/model_iso.png
+  previews/model_front.png
+  previews/drawing_preview.png
+  previews/package_cover.png
+  reviews/model_review.json
+  reviews/drawing_review.json
+  reviews/printability_review.json
+  reviews/final_review.json
+  logs/run_YYYYMMDD_HHMMSS.log
+  README_DELIVERY.md
 ```
 
-## 9. 数据文件规格
+## 6. Historical data examples
 
-### 9.1 project.json
+These schemas are historical workbench examples, not the ModelOps modeling-request schema. Keys, enums, timestamps, and numeric fixture values are retained.
+
+### project.json
 
 ```json
 {
@@ -481,7 +215,7 @@ P0 规则失败时，总状态必须为 `fail`。
 }
 ```
 
-### 9.2 parameters.json
+### parameters.json
 
 ```json
 {
@@ -513,15 +247,20 @@ P0 规则失败时，总状态必须为 `fail`。
   "drawing": {
     "paper_size": "A3",
     "scale": "1:1",
-    "title": "3D打印外壳",
+    "title": "3D-printed enclosure",
     "material": "PLA/PETG",
     "projection": "first_angle",
-    "required_exports": ["dwg", "dxf", "pdf", "png"]
+    "required_exports": [
+      "dwg",
+      "dxf",
+      "pdf",
+      "png"
+    ]
   }
 }
 ```
 
-### 9.3 final_review.json
+### final_review.json
 
 ```json
 {
@@ -535,8 +274,8 @@ P0 规则失败时，总状态必须为 `fail`。
       "severity": "P0",
       "status": "fail",
       "target": "drawing",
-      "message": "接口孔 I1 缺少 X/Y 中心定位尺寸",
-      "suggestion": "补充相对左边和底边的中心定位尺寸"
+      "message": "Interface opening I1 lacks X/Y center-location dimensions",
+      "suggestion": "Add center-location dimensions from the left and bottom datums"
     }
   ],
   "outputs": {
@@ -551,109 +290,74 @@ P0 规则失败时，总状态必须为 `fail`。
 }
 ```
 
-## 10. P0 规范检查清单
+## 7. Mandatory P0 checks
 
-### 10.1 模型 P0
+### Model
 
-| ID | 检查项 | 失败条件 |
-|---|---|---|
-| model-file-exists | 模型文件存在 | SLDPRT/STEP/STL 缺失或大小异常 |
-| model-solid-body | 主体存在 | 没有实体或实体数量异常 |
-| model-shell-thickness | 壁厚/底厚存在 | 壁厚未建模或低于用户参数 |
-| model-cut-through | 开孔真实切除 | 孔槽只是草图/线条/装饰，不贯穿指定面 |
-| model-feature-count | 特征数量匹配 | 参数表孔槽数量与模型不一致 |
-| model-print-scale | 尺寸单位正确 | 输出 STL 尺寸不是 mm 对应尺度 |
+| ID | Check | Failure condition |
+| --- | --- | --- |
+| model-file-exists | Model file | Missing or suspicious SLDPRT/STEP/STL size |
+| model-solid-body | Solid geometry | No solid or unexpected solid count |
+| model-shell-thickness | Wall/bottom | Unmodeled or below requested thickness |
+| model-cut-through | Actual openings | Sketches/decorations rather than cuts through the specified face |
+| model-feature-count | Feature quantity | Model hole/slot count differs from parameters |
+| model-print-scale | Units | STL scale does not correspond to mm |
 
-### 10.2 工程图 P0
+### Drawing
 
-| ID | 检查项 | 失败条件 |
-|---|---|---|
-| drawing-frame-title | 图框标题栏 | 缺少图框、标题栏、单位、比例 |
-| drawing-main-dimensions | 外形总尺寸 | 长宽高任一漏标 |
-| drawing-wall-dimensions | 壁厚/底厚 | 3D 打印壳体未标壁厚或底厚 |
-| drawing-hole-spec | 孔槽规格 | 孔槽缺规格、数量或类型 |
-| drawing-hole-position | 孔槽定位 | 孔槽缺 X/Y 定位、中心距或基准尺寸 |
-| drawing-real-dimensions | 真实尺寸实体 | 关键尺寸用手画线或纯文字冒充 |
-| drawing-leader-crossing | 引线穿越 | 长引线跨视图、穿孔、穿中心线或压字 |
-| drawing-overlap | 图面重叠 | 尺寸/文字/表格重叠影响读取 |
-| drawing-title-intrusion | 标题栏侵入 | 尺寸线或文字进入标题栏 |
-| drawing-hole-table | 孔槽明细表 | 密集孔槽没有表，或表缺规格/数量/定位 |
+| ID | Check | Failure condition |
+| --- | --- | --- |
+| drawing-frame-title | Border/title | Missing border, title, units, or scale |
+| drawing-main-dimensions | Envelope | Missing any length/width/height |
+| drawing-wall-dimensions | Wall/bottom | Missing enclosure wall or bottom thickness |
+| drawing-hole-spec | Feature specification | Missing type, specification, or count |
+| drawing-hole-position | Locations | Missing X/Y, center distance, or datum dimensions |
+| drawing-real-dimensions | Dimension entities | Critical dimensions imitated by lines/text |
+| drawing-leader-crossing | Leaders | Across views, holes, centerlines, or text |
+| drawing-overlap | Readability | Dimension/text/table overlap impairs reading |
+| drawing-title-intrusion | Title area | Dimensions/text enter title block |
+| drawing-hole-table | Schedule | Dense features lack a table or specifications/counts/locations |
 
-### 10.3 3D 打印 P0
+### Printability
 
-| ID | 检查项 | 失败条件 |
-|---|---|---|
-| print-min-wall | 最小壁厚 | 小于用户设定硬下限 |
-| print-open-hole | 必要开孔 | 用户要求开孔但模型未切除 |
-| print-fit-clearance | 装配间隙 | 参数中要求装配但没有间隙 |
-| print-stl-valid | STL 导出 | 文件缺失、空文件或尺度异常 |
+| ID | Check | Failure condition |
+| --- | --- | --- |
+| print-min-wall | Minimum wall | Below the user's hard limit |
+| print-open-hole | Required opening | Requested opening is not cut |
+| print-fit-clearance | Clearance | Required assembly lacks clearance |
+| print-stl-valid | STL | Missing, empty, or incorrect scale |
 
-## 11. 图纸默认样式
+## 8. Default drawing conventions
 
-MVP 默认采用国内机械图纸习惯。
+Proposed defaults: A3, with A4 when appropriate; mm; 1:1 or 1:2 / 2:1 to fit; FangSong-style Chinese typeface with a recorded available-Chinese-font fallback; separately layered thick/thin visible, center, hidden, and dimension lines; bottom-right title block; front/top/right or section plus isometric reference; hole/slot tables in dense areas. GB/T-style presentation does not replace company drawing review. A supplied enterprise template takes precedence.
 
-默认设置:
-
-| 项目 | 默认值 |
-|---|---|
-| 图幅 | A3，必要时 A4 |
-| 单位 | mm |
-| 比例 | 1:1，放不下时 1:2 / 2:1 |
-| 字体 | 仿宋风格中文，缺字体时使用可用中文字体并记录 |
-| 线型 | 粗实线、细实线、中心线、虚线、尺寸线分层 |
-| 标题栏 | 右下角 |
-| 视图 | 主视图、俯视图、右视图/剖视图、等轴测参考 |
-| 表格 | 孔槽明细表优先 |
-
-注意:
-
-```text
-“参照 GB/T 风格”不是替代企业审图。若用户提供企业模板，必须优先使用企业模板。
-```
-
-## 12. 交付包规格
-
-交付包必须包含:
+## 9. Delivery package
 
 ```text
 01_model/
   project.sldprt
   project.step
   project.stl
-
 02_drawing/
   project.dwg
   project.dxf
   project.pdf
   drawing_preview.png
-
 03_review/
   model_review.json
   drawing_review.json
   printability_review.json
   final_review.json
-
 04_source/
   project.json
   parameters.json
   generated_scripts/
-
-README_交付说明.md
+README_DELIVERY.md
 ```
 
-`README_交付说明.md` 必须写:
+Delivery notes must state project name, units, material/printing assumptions, file descriptions, drawing standards, review status, and outstanding human confirmations.
 
-- 项目名称。
-- 单位。
-- 材料/打印工艺假设。
-- 输出文件说明。
-- 图纸标准说明。
-- 复核状态。
-- 仍需人工确认项。
-
-## 13. 状态机
-
-项目状态:
+## 10. States and errors
 
 ```text
 draft -> ready -> running -> generated -> reviewing -> pass
@@ -661,166 +365,41 @@ draft -> ready -> running -> generated -> reviewing -> pass
                                       -> failed
 ```
 
-阶段状态:
+Stage states: `waiting`, `running`, `passed`, `warning`, `failed`, `skipped`.
+Any P0 failure forces project `failed`; P1 failure can yield `warning`. Only complete required outputs and passed P0 checks allow `pass`.
 
-```text
-waiting
-running
-passed
-warning
-failed
-skipped
-```
-
-规则:
-
-- P0 任一失败，项目状态为 `failed`。
-- P1 失败，项目状态可以是 `warning`。
-- 所有必需输出存在且 P0 通过，项目状态才可为 `pass`。
-
-## 14. 错误处理
-
-错误必须结构化记录。
+Errors must be structured:
 
 ```json
 {
   "stage": "build_drawing",
   "error_code": "AUTOCAD_COM_REJECTED",
-  "message": "AutoCAD COM 调用被拒绝",
+  "message": "AutoCAD COM call was rejected",
   "retryable": true,
-  "suggestion": "等待 AutoCAD 空闲后重试，必要时关闭弹窗或重启 AutoCAD"
+  "suggestion": "Retry when AutoCAD is idle; close modal dialogs or restart AutoCAD if needed"
 }
 ```
 
-常见错误:
+| Code | Stage | Response |
+| --- | --- | --- |
+| SOLIDWORKS_NOT_FOUND | preflight | Install/start SolidWorks |
+| PYWIN32_MISSING | preflight | Install dependencies |
+| AUTOCAD_NOT_FOUND | preflight | Install/start AutoCAD |
+| AUTOCAD_COM_REJECTED | build_drawing | Serial retry; request closing modal dialogs when needed |
+| FEATURE_PARAM_INCOMPLETE | validate_parameters | Stop generation; supply feature locations |
+| MODEL_CUT_MISSING | review_model | Rework model |
+| DRAWING_DIM_MISSING | review_drawing | Rework drawing |
+| EXPORT_FILE_MISSING | package | Export again |
 
-| 错误码 | 阶段 | 处理 |
-|---|---|---|
-| SOLIDWORKS_NOT_FOUND | preflight | 提示安装或启动 SolidWorks |
-| PYWIN32_MISSING | preflight | 提示安装依赖 |
-| AUTOCAD_NOT_FOUND | preflight | 提示安装或启动 AutoCAD |
-| AUTOCAD_COM_REJECTED | build_drawing | 串行重试，必要时提示用户关闭弹窗 |
-| FEATURE_PARAM_INCOMPLETE | validate_parameters | 阻止生成，要求补孔槽定位 |
-| MODEL_CUT_MISSING | review_model | 返工模型 |
-| DRAWING_DIM_MISSING | review_drawing | 返工图纸 |
-| EXPORT_FILE_MISSING | package | 重新导出 |
+## 11. Historical UI priorities and development stages
 
-## 15. MVP 界面优先级
+P0 pages: project list, new project, enclosure parameters, execution logs, review report, output files. P1: skill versions, rule configuration, enterprise templates, project duplication. P2: visual hole-position editor, 3D preview, drawing comments, template marketplace.
 
-### P0 页面
+1. **Runnable prototype:** create desktop directory, window/navigation, projects/forms, local JSON, mock execution state machine, and output-folder opening. Produce `review.json` and delivery directories.
+2. **Native model:** integrate `sw_preflight.py`, SolidWorks builders, SLDPRT/STEP/STL, previews, and model review.
+3. **Drawings:** integrate `acad_preflight.py`, `drawing_plan.json`, AutoCAD drawing, DWG/DXF/PDF/PNG, and P0 review.
+4. **Package:** collect outputs, write delivery notes, ZIP, and final-state page.
 
-- 首页/项目列表。
-- 新建项目。
-- 3D 打印外壳参数页。
-- 执行日志页。
-- 复核报告页。
-- 输出文件页。
+Unresolved questions included cross-version AutoCAD preview export, lower-rework SolidWorks versus AutoCAD drawing routes, robust proof of through cuts, machine-versus-human P0 coverage, and built-in versus company-supplied frames.
 
-### P1 页面
-
-- Skills 版本管理。
-- 规则库配置。
-- 企业模板导入。
-- 历史项目复制。
-
-### P2 页面
-
-- 可视化孔位编辑器。
-- 3D 预览。
-- 图纸在线批注。
-- 多模板市场。
-
-## 16. 开发拆分
-
-### 第一个可运行版本
-
-目标:
-
-```text
-能创建项目、保存参数、跑一次 mock 执行、生成 review.json 和交付目录。
-```
-
-任务:
-
-1. 建立桌面项目目录。
-2. 实现主窗口和导航。
-3. 实现项目创建。
-4. 实现参数表单。
-5. 实现本地 JSON 保存。
-6. 实现 mock 执行状态机。
-7. 实现输出目录打开。
-
-### 第二个版本
-
-目标:
-
-```text
-接入 SolidWorks，生成真实 3D 打印外壳模型。
-```
-
-任务:
-
-1. 接入 `sw_preflight.py`。
-2. 接入 SolidWorks 建模脚本。
-3. 导出 SLDPRT/STEP/STL。
-4. 生成模型预览。
-5. 生成模型复核报告。
-
-### 第三个版本
-
-目标:
-
-```text
-接入 AutoCAD，生成符合 P0 规则的 DWG/DXF 工程图。
-```
-
-任务:
-
-1. 接入 `acad_preflight.py`。
-2. 生成 drawing_plan.json。
-3. 调用 AutoCAD 绘图。
-4. 导出 DWG/DXF/PDF/PNG。
-5. 实现 P0 图纸复核。
-
-### 第四个版本
-
-目标:
-
-```text
-一键交付包。
-```
-
-任务:
-
-1. 汇总所有输出。
-2. 写交付说明。
-3. 压缩交付包。
-4. 做最终状态页。
-
-## 17. 首版不确定项
-
-需要后续验证:
-
-- AutoCAD 预览导出在不同版本上的稳定性。
-- SolidWorks Drawing 和 AutoCAD Drawing 哪条路线更省返工。
-- 真实几何中如何稳定检测孔槽“已经切穿”。
-- P0 图纸复核哪些能机器判断，哪些必须保留人工目视确认。
-- 默认图框模板是否采用内置模板，还是要求用户导入企业模板。
-
-## 18. 下一步
-
-建议下一步进入原型设计:
-
-```text
-apps/desktop/
-```
-
-最小实现:
-
-- PySide6 主窗口。
-- 项目创建。
-- 参数表单。
-- 本地项目目录生成。
-- mock 执行和 review.json。
-
-在 mock 原型跑通后，再接 SolidWorks 和 AutoCAD。这样可以先验证用户流程，而不是一开始被 COM 稳定性拖住。
+The proposed next step was `apps/desktop/`: PySide6 window, project creation, forms, local project directories, mock execution, and `review.json`. Native CAD integration was to follow after validating the mock user flow. This sequence is a historical plan, not an implementation or manufacturing-readiness claim.

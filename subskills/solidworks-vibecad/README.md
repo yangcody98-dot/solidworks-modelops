@@ -1,26 +1,26 @@
 # SolidWorks VibeCAD
 
-`solidworks-vibecad` 是 `solidworks-automation` 仓库里的参数化设计规划子技能，用来把自然语言机械设计需求转换为结构化设计计划、制造规则检查、SolidWorks API 执行摘要和审查门禁。
+`solidworks-vibecad` is the parametric design planning subskill from the `solidworks-automation` repository. It converts natural-language mechanical requirements into structured plans, manufacturing-rule checks, SolidWorks API execution outlines, and review gates.
 
-## 为什么放在子技能里
+## Why it is a subskill
 
-这个方向的价值不在于临时生成宏，而在于把重复机械设计沉淀成可复用工程资产：
+Repeated mechanical design work benefits from reusable engineering assets:
 
 ```text
-行业知识库 + 参数 schema + 提示词模板 + 稳定 API 封装 + 自动审查
+Domain knowledge + parameter schema + planning prompts + reliable API wrappers + automated review
 ```
 
-因此它应该作为 SolidWorks 自动化大仓库的一部分，和 CNC 圆角/倒角、螺纹孔、装配、MCP 等能力并列管理。
+This capability belongs alongside the repository's CNC fillet and chamfer, threaded-hole, assembly, and MCP workflows.
 
-## 当前能力
+## Current capabilities
 
-- 从自然语言需求生成参数化设计计划 JSON。
-- 内置 M3-M12 攻丝底孔、通孔、CNC 圆角/倒角、最小壁厚等规则。
-- 给 LLM 提供严格规划提示词，避免直接输出不稳定宏。
-- 生成 SolidWorks API 执行摘要，明确每一步对应父技能的哪个稳定封装。
-- 生成审查门禁，要求保存、导出、多视角预览和 review report。
+- Generate parametric design-plan JSON from natural-language requirements.
+- Apply built-in rules for M3-M12 tap drills, clearance holes, CNC fillets and chamfers, and minimum wall thickness.
+- Provide a constrained planning prompt to keep LLM output separate from unstable macro generation.
+- Generate a SolidWorks API execution outline identifying the parent skill's wrapper for each step.
+- Generate review gates requiring saving, export, multiple preview views, and a review report.
 
-## 目录
+## Layout
 
 ```text
 solidworks-vibecad/
@@ -44,9 +44,9 @@ solidworks-vibecad/
     └── vibecad-roadmap.md
 ```
 
-## 快速运行
+## Quick start
 
-在 `solidworks-automation` 仓库根目录执行：
+Run from the `solidworks-automation` repository root:
 
 ```powershell
 py subskills\solidworks-vibecad\scripts\plan_from_brief.py `
@@ -58,28 +58,28 @@ py subskills\solidworks-vibecad\scripts\sw_execution_outline.py `
   --out subskills\solidworks-vibecad\examples\motor_mount_execution.md
 ```
 
-## 示例输出
+## Example output
 
-示例需求会识别：
+The example brief identifies:
 
-- 底板：`90 x 60 x 8 mm`
-- 固定孔：`M5` 螺丝通孔，通孔直径 `5.5 mm`
-- 中心孔：`22 mm`
-- 外轮廓圆角：`R6`
-- 顶边倒角：`C1`
-- 审查：`SLDPRT + STEP + parameters_json + review_report_json + isometric_preview`
+- Base plate: `90 x 60 x 8 mm`
+- Fastening holes: `M5` screw clearance holes, diameter `5.5 mm`
+- Center hole: `22 mm`
+- Outer corner fillets: `R6`
+- Top-edge chamfer: `C1`
+- Review: `SLDPRT + STEP + parameters_json + review_report_json + isometric_preview`
 
-## 实际执行与反馈
+## Execution and feedback
 
-父技能新增 `scripts/sw_closed_loop.py`，接通模型只读快照、计划动作、真实几何检查和有限反馈修正。
-从父技能根目录运行：
+The parent skill's `scripts/sw_closed_loop.py` connects read-only model snapshots, planned actions, real geometry checks, and bounded corrective feedback.
+Run from the parent skill root:
 
 ```powershell
 python scripts/sw_closed_loop.py validate --plan examples/closed_loop_plate.json
 python scripts/sw_closed_loop.py run --plan examples/closed_loop_plate.json --out-dir output/closed_loop_run_01
 ```
 
-输出目录必须不存在，写入仅发生在新建零件。当前支持矩形/圆草图、拉伸、切除与测量绑定，
-见 [闭环说明](../../references/closed-loop-modeling.md)。原需求规划器及执行摘要继续可用。
-默认完整 `cnc_mount` 中的圆角、倒角、口袋尚未进入新动作白名单；这些设计继续使用原专项工具，
-不会在转换时静默删除。失败报告交由 Agent 基于真实上下文修订计划，不自动改变关键设计尺寸。
+The output directory must not already exist, and writes target only a newly created part. Current support covers rectangle and circle sketches, extrusions, cuts, and measurement bindings;
+see the [closed-loop guide](../../references/closed-loop-modeling.md). The original requirement planner and execution outline remain available.
+Fillets, chamfers, and pockets in the full default `cnc_mount` plan are not yet on the new action allowlist. Use the existing specialized tools for those features;
+conversion must not silently remove them. After a failure, the agent revises the plan using the actual context and report rather than automatically changing key design dimensions.

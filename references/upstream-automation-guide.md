@@ -1,74 +1,74 @@
 ---
 name: solidworks-automation
-description: "SolidWorks CAD 自动化技能，优先覆盖经验证的零件、孔槽、装配、工程图、导出和交付复核；所有能力等级以 capabilities.yaml 为准，未验证能力必须走人工复核。"
+description: "SolidWorks CAD automation covering historically verified parts, holes/slots, assemblies, drawings, export, and delivery review; capabilities.yaml is authoritative, and unverified capabilities require human review."
 metadata: { "openclaw": { "homepage": "https://github.com/wzyn20051216/solidworks-automation-skill", "os": ["win32"], "requires": { "anyBins": ["python", "py"] } } }
 ---
 
-# SolidWorks 自动化技能
+# SolidWorks Automation Skill
 
-> 上游保留资料：本文的 `name`、`homepage`、模块说明和历史回归结论描述上游
-> SolidWorks Automation Skill。它不是 ModelOps 的独立安装入口，也不表示全部能力已接入
-> ModelOps v0.1。安装、统一 CLI 与验证范围请读本仓库 [README](../README.md) 和
-> [根 SKILL](../SKILL.md)；来源见 [NOTICE](../NOTICE.md)。
+> **Inherited historical guide.** The `name`, `homepage`, module descriptions, and regression statements below describe the upstream
+> SolidWorks Automation Skill. This is not a separate ModelOps installation entry and does not mean all inherited capabilities are integrated
+> into ModelOps v0.1. For installation, the unified CLI, and verified scope, read this repository's [README](../README.md) and
+> [root SKILL](../SKILL.md). Attribution is recorded in [NOTICE](../NOTICE.md).
 
-## 快速开始
+## Quick start
 
-### 环境要求
+### Requirements
 
-- Windows 系统；原生 SolidWorks 格式需要 SolidWorks，开放格式无头写入不要求安装 CAD 软件
-- Python 3.10+；原生 Windows CAD 自动化另需 `pywin32` / `comtypes`
-- MCP/工具化调用需要 `mcp` / `pydantic`
-- 处理 GLB/GLTF/OBJ/STL 网格参考模型时，可能还需要 `trimesh` / `pygltflib` / `numpy` / `Pillow`
-- 如果通过 OpenClaw 使用，确保技能目录位于 `~/.openclaw/skills/solidworks-automation/` 或 `~/.agents/skills/solidworks-automation/`
+- Windows; native SolidWorks formats require SolidWorks, while headless open-format output requires no installed CAD application.
+- Python 3.10+; native Windows CAD automation additionally needs `pywin32` / `comtypes`.
+- MCP/tool access needs `mcp` / `pydantic`.
+- GLB/GLTF/OBJ/STL references may also need `trimesh`, `pygltflib`, `numpy`, and `Pillow`.
+- For OpenClaw, place the skill in `~/.openclaw/skills/solidworks-automation/` or `~/.agents/skills/solidworks-automation/`.
 
-### 入口自检
+### Entry preflight
 
-所有代理在执行 SolidWorks 自动化前，先运行技能自检：
+Before SolidWorks automation, agents first run:
 
 ```bash
 python SKILL_DIR/scripts/sw_preflight.py
 ```
 
-桌面端或 CLI 执行前建议先运行环境诊断：
+Before desktop or CLI execution, also run the environment diagnostic:
 
 ```powershell
 python SKILL_DIR/scripts/cad_studio.py doctor
 ```
 
-`capabilities.yaml` 是 Skill、MCP、队列和 UI 共用的能力唯一真源。能力等级为 `verified`、`pilot`、`reference_only` 或 `not_implemented`；后两者不得作为无人值守交付。
+`capabilities.yaml` is the single capability authority shared by the skill, MCP, queue, and UI. Levels are `verified`, `pilot`, `reference_only`, and `not_implemented`; the latter two cannot support unattended delivery.
 
-### 双入口与双后端
+### Two entry points and two backends
 
-- CAD Studio 与 Skill/CLI/MCP 是平级入口，共用 Automation Job、NeutralCadDocument、Preview Manifest、Evidence Graph 和能力清单。
-- 检测不到 SolidWorks/AutoCAD 时，只阻断 `SLDPRT/SLDASM/SLDDRW/DWG` 等原生格式；开放格式任务优先路由到 `headless_open_format_writing`。
-- 无头写入使用 `scripts/headless_cad_writer.py`；OCCT/OCP 隔离进程真实写入 STEP、IGES、BREP、STL、OBJ、GLB，二维后端写入 DXF、SVG、PDF、PNG，并生成几何与 SHA-256 证据。
-- DXF 交付会额外生成 `preview_scene`；已有 DXF 可通过 `python scripts/cad_studio.py preview-dxf --input drawing.dxf --output drawing.scene.json` 或 MCP `cadstudio_build_dxf_preview_scene` 转成受限 PreviewScene。该命令只读白名单实体并拒绝覆盖旧文件。
-- OCCT 当前覆盖盒体、圆柱、布尔合并、圆柱孔切除、直纹/受限平滑 Loft、直线/单圆弧 Sweep、闭壳 Knit 和开放面 Thicken；复杂路径、自交偏置或缺少 OCP 运行时时保持 `blocked`。禁止通过改扩展名或空文件伪造支持。
-- `delivery-preview` 只允许显示当前任务真实产物；固定样例必须标记 `demo-showcase` 与 `isDemo: true`，不得进入交付判断。
+- CAD Studio and Skill/CLI/MCP are peer entry points sharing Automation Job, NeutralCadDocument, Preview Manifest, Evidence Graph, and the capability registry.
+- Missing SolidWorks/AutoCAD blocks only native formats such as `SLDPRT/SLDASM/SLDDRW/DWG`; route open-format tasks to `headless_open_format_writing`.
+- Headless writing uses `scripts/headless_cad_writer.py`: isolated OCCT/OCP processes write real STEP, IGES, BREP, STL, OBJ, and GLB; 2D backends write DXF, SVG, PDF, and PNG with geometry and SHA-256 evidence.
+- DXF delivery also produces `preview_scene`. Convert an existing DXF with `python scripts/cad_studio.py preview-dxf --input drawing.dxf --output drawing.scene.json` or MCP `cadstudio_build_dxf_preview_scene`. It reads only allowlisted entities into a restricted PreviewScene and refuses to overwrite existing files.
+- OCCT covers boxes, cylinders, Boolean union, cylindrical-hole cuts, ruled/restricted smooth Loft, straight/single-arc Sweep, closed-shell Knit, and open-surface Thicken. Complex paths, self-intersecting offsets, and missing OCP remain `blocked`. Never fake support through renamed extensions or empty files.
+- `delivery-preview` may show only actual artifacts from the current task. Fixed examples must be marked `demo-showcase` and `isDemo: true` and cannot count toward delivery acceptance.
 
-规则：
+Rules:
 
-1. 检测到缺少 `comtypes` / `win32com` / `pythoncom` 时，向用户弹出友好确认：
-   `检测到当前 Python 环境缺少 comtypes / win32com 库，是否授权 AI 自动为您配置本地环境？[Y/N]`
-2. 用户输入 `Y` / `yes` 后，代理可在本地 shell 中自动执行 `python -m pip install "pywin32>=305" "comtypes>=1.2.0"` 补齐依赖；用户拒绝时停止并给出手动安装命令。
-3. 检测不到 SolidWorks 安装或 COM 注册时，停止原生 SolidWorks 操作；若原生格式并非必需且 `fallbackPolicy=allow_open_formats`，继续执行无头开放格式后端，不要把整个任务误标为失败。
+1. If `comtypes`, `win32com`, or `pythoncom` is missing, present a clear confirmation:
+   `This Python environment lacks comtypes / win32com. May the agent configure these local dependencies automatically? [Y/N]`
+2. After `Y` / `yes`, run `python -m pip install "pywin32>=305" "comtypes>=1.2.0"` in the local shell. If declined, stop and provide manual commands.
+3. Missing SolidWorks installation/COM registration stops native operations only. If native output is unnecessary and `fallbackPolicy=allow_open_formats`, continue headless output instead of reporting the whole task failed.
 
-### Python 依赖提醒
+### Python dependency notes
 
-按任务最小化安装依赖，不要在普通零件建模时强制安装网格转换库：
+Install the minimum dependencies for the task; ordinary part modeling does not require mesh-conversion libraries:
 
 ```powershell
-# 核心 SolidWorks COM 自动化依赖
+# Core SolidWorks COM automation dependencies
 python -m pip install -r SKILL_DIR\requirements.txt
 
-# 仅在需要 GLB/GLTF/OBJ/STL 网格检查、缩放或转换时安装
+# Install only for GLB/GLTF/OBJ/STL inspection, scaling, or conversion
 python -m pip install -r SKILL_DIR\requirements-mesh.txt
 ```
 
-执行涉及 GLB/GLTF/FBX/BLEND 转 OBJ/STL 的任务前，先用 `importlib.util.find_spec()` 检查
-`trimesh`、`pygltflib`、`PIL` 是否可用；缺失时先提示用户需要安装哪些库和用途，再安装或给出手动命令。
+Before converting GLB/GLTF/FBX/BLEND to OBJ/STL, use `importlib.util.find_spec()` to check
+`trimesh`, `pygltflib`, and `PIL`. Explain missing libraries and their purpose before installation or provide manual commands.
 
-### 连接 SolidWorks
+### Connecting to SolidWorks
 
 ```python
 import sys; sys.path.insert(0, r"SKILL_DIR/scripts")
@@ -87,61 +87,61 @@ session.save(model, r"C:\temp\cylinder.sldprt")
 session.export(model, r"C:\temp\cylinder.step")
 ```
 
-> 将 `SKILL_DIR` 替换为此技能的实际安装路径。
+> Replace `SKILL_DIR` with the actual skill installation directory.
 
-## 核心工作流
+## Core workflows
 
-根据用户需求选择对应模块：
+Choose the module matching the task:
 
-| 需求 | 脚本 | 参考文档 |
+| Need | Script | Reference |
 |---|---|---|
-| 入口自检与依赖补齐 | `scripts/sw_preflight.py` | `references/troubleshooting.md` |
-| 无 CAD 开放格式写入 | `scripts/headless_cad_writer.py`、`scripts/cad_studio.py write-open-format` | `capabilities.yaml`、公共 CAD Core Schema |
-| 高级能力/类型库探测 | `scripts/sw_capability_probe.py` | `references/complex-mechanical-routing.md` |
-| 多模型宏生成防护 | `scripts/sw_macro_guard.py` | `references/openclaw.md` |
-| 友好会话 API | `scripts/sw_session.py` | - |
-| 连接与文档管理 | `scripts/sw_connect.py` | - |
-| 外观与材质 | `scripts/sw_appearance.py` | `references/appearance.md` |
-| 零件建模（草图+特征） | `scripts/sw_part.py` | `references/part-modeling.md` |
-| 盲孔/沉孔/沉头孔/半圆端槽与孔位验收 | `scripts/sw_hole_features.py`、`scripts/sw_review.py` | `references/complex-hole-features.md`、`references/review.md` |
-| 草图完全定义与驱动尺寸审查 | `scripts/sw_sketch_constraints.py` | 新建参数化模型需回读全部草图约束状态，包括吸收子草图；不能只验实体几何 |
-| 原生孔向导圆柱沉孔 | `scripts/sw_native_holes.py` | `references/complex-hole-features.md`；已验证 ISO/M8 沉孔，不拆成两次 Cut 冒充原生孔特征 |
-| 原生筋与创建后验收 | `scripts/sw_native_ribs.py` | `references/native-ribs.md`；SW2025 已实机通过开放单直线、双侧对称、平行草图、无拔模的 Rib，使用后回读参数、草图和体积 |
-| 自然语言到参数化设计计划 / VibeCAD | `subskills/solidworks-vibecad/scripts/plan_from_brief.py` | `subskills/solidworks-vibecad/SKILL.md`、`subskills/solidworks-vibecad/README.md` |
-| 读取模型 → 执行基础建模 → 检查反馈 | `scripts/sw_model_context.py`、`scripts/sw_closed_loop.py` | `references/closed-loop-modeling.md`；新建独立零件、保留源模型、每步测量验收 |
-| 多圆角/倒角 CNC 机加工件 | `subskills/solidworks-fillet-chamfer-cnc/scripts/create_cnc_mount_template.py` | `subskills/solidworks-fillet-chamfer-cnc/SKILL.md`、`subskills/solidworks-fillet-chamfer-cnc/references/cnc-fillet-chamfer-lessons.md` |
-| 螺丝孔/螺纹孔、攻丝底孔 | `subskills/solidworks-threaded-holes/scripts/create_threaded_hole_template.py` | `subskills/solidworks-threaded-holes/SKILL.md`、`subskills/solidworks-threaded-holes/references/threaded-hole-lessons.md` |
-| AutoCAD DWG/DXF 二维绘图、线稿转 CAD、批量改图 | `subskills/autocad-automation/scripts/acad_draw.py`、`subskills/autocad-automation/scripts/acad_review.py` | `subskills/autocad-automation/SKILL.md`、`subskills/autocad-automation/references/troubleshooting.md` |
-| 装配体操作、齿轮/铰链/可拖动运动配合 | `scripts/sw_assembly.py` | `references/assembly.md` |
-| Motion Study 运动算例、旋转马达与结果审计 | `scripts/sw_motion.py` | `references/motion-study.md`、`references/complex-mechanical-routing.md` |
-| 工程图出图 | `scripts/sw_drawing.py` | `references/drawing.md` |
-| 文件导出 | `scripts/sw_export.py` | `references/export.md` |
-| 参数修改与自定义属性 | `scripts/sw_document_data.py` | `references/advanced.md` |
-| 装配 BOM CSV 与 Pack and Go | `scripts/sw_delivery.py` | `references/export.md` |
-| OBJ/STL 高还原网格参考导入 | `scripts/sw_import_mesh_reference.py` | `references/mesh-reference-import.md` |
-| 结果自审查 | `scripts/sw_review.py` | `references/review.md` |
-| 语义实体引用 | `scripts/sw_entity_reference.py` | 逐步替代 Face1/Edge1 和屏幕坐标 |
-| DFM 制造风险复核 | `scripts/dfm_review.py`、`scripts/dfm_profiles.py`、`scripts/cad_studio.py check-dfm` | 供应商 profile、B-Rep 证据、机加工、钣金、激光切割和 3D 打印的结构化规则检查 |
-| Routing 中性复核与前置 | `scripts/routing_review.py`、`scripts/cad_studio.py check-routing`、`scripts/cad_studio.py routing-preflight` | 端点、分段、长度、弯曲半径、碰撞/间隙、支撑、Routing BOM；原生写入必须等加载项/许可证证据 |
-| FEA 前置、输入与受限求解 | `scripts/fea_analysis.py`、`scripts/fea_convergence.py`、`scripts/cad_studio.py fea-preflight/prepare-fea/run-fea/run-fea-convergence` | CalculiX 2.23 已验证线性/非线性静力、塑性、面接触、最终步 COPEN/CPRESS/CSLIP 与线性/非线性网格收敛；全部仍需工程复核 |
-| 复杂曲面与模具 | `scripts/advanced_geometry.py`、`scripts/advanced_geometry_ocp.py`、`scripts/advanced_surface_ocp.py`、`scripts/cad_studio.py review-advanced-geometry/create-ocp-loft/create-ocp-surface` | 直纹/平滑 Loft、受限 Sweep/Knit/Thicken 可写并重开 B-Rep；G1/G2 和曲率半径只返回离散采样证据 |
-| 本地 MCP Server | `mcp-server/server.py` | `mcp-server/README.md`、`references/mcp-server.md` |
-| MCP 协议验证 | `scripts/validate_mcp.py` | `mcp-server/README.md` |
-| 未封装 API 查证 | - | `references/api-lookup.md` |
-| OpenClaw 控制 SolidWorks | - | `references/openclaw.md` |
-| 钣金/焊件/仿真/属性 | - | `references/advanced.md` |
-| 企业 Agent / 本地优先与云 RAG | `apps/desktop/cad_workbench/knowledge_retrieval.py` | `references/enterprise-agent-rag.md` |
+| Entry preflight and dependency setup | `scripts/sw_preflight.py` | `references/troubleshooting.md` |
+| Headless open-format writing | `scripts/headless_cad_writer.py`, `scripts/cad_studio.py write-open-format` | `capabilities.yaml`, shared CAD Core Schema |
+| Advanced capability/type-library probe | `scripts/sw_capability_probe.py` | `references/complex-mechanical-routing.md` |
+| Guards for model-generated macros | `scripts/sw_macro_guard.py` | `references/openclaw.md` |
+| Friendly session API | `scripts/sw_session.py` | - |
+| Connection and documents | `scripts/sw_connect.py` | - |
+| Appearance/material | `scripts/sw_appearance.py` | `references/appearance.md` |
+| Parts: sketches and features | `scripts/sw_part.py` | `references/part-modeling.md` |
+| Blind/counterbore/countersink holes, obrounds, and hole acceptance | `scripts/sw_hole_features.py`, `scripts/sw_review.py` | `references/complex-hole-features.md`, `references/review.md` |
+| Full sketch definition and driving-dimension audit | `scripts/sw_sketch_constraints.py` | Read all sketch constraint states, including absorbed subsketches; solid geometry alone is insufficient |
+| Native Hole Wizard cylindrical counterbores | `scripts/sw_native_holes.py` | `references/complex-hole-features.md`; historical ISO/M8 validation, not two cuts presented as a native hole |
+| Native Rib and postcreation checks | `scripts/sw_native_ribs.py` | `references/native-ribs.md`; historical SW2025 open single-line, symmetric two-sided, parallel, undrafted Rib; reread parameters/sketch/volume |
+| Natural language to parametric plan / VibeCAD | `subskills/solidworks-vibecad/scripts/plan_from_brief.py` | `subskills/solidworks-vibecad/SKILL.md`, `subskills/solidworks-vibecad/README.md` |
+| Read context, execute basic modeling, verify feedback | `scripts/sw_model_context.py`, `scripts/sw_closed_loop.py` | `references/closed-loop-modeling.md`; independent new parts, source preservation, per-step measurements |
+| CNC parts with many fillets/chamfers | `subskills/solidworks-fillet-chamfer-cnc/scripts/create_cnc_mount_template.py` | `subskills/solidworks-fillet-chamfer-cnc/SKILL.md`, `subskills/solidworks-fillet-chamfer-cnc/references/cnc-fillet-chamfer-lessons.md` |
+| Screw/threaded/tap-drill holes | `subskills/solidworks-threaded-holes/scripts/create_threaded_hole_template.py` | `subskills/solidworks-threaded-holes/SKILL.md`, `subskills/solidworks-threaded-holes/references/threaded-hole-lessons.md` |
+| AutoCAD DWG/DXF drafting, linework conversion, and batch edits | `subskills/autocad-automation/scripts/acad_draw.py`, `subskills/autocad-automation/scripts/acad_review.py` | `subskills/autocad-automation/SKILL.md`, `subskills/autocad-automation/references/troubleshooting.md` |
+| Assemblies, gear/hinge/drag-compatible mates | `scripts/sw_assembly.py` | `references/assembly.md` |
+| Motion Study, rotational motors, result audit | `scripts/sw_motion.py` | `references/motion-study.md`, `references/complex-mechanical-routing.md` |
+| Drawings | `scripts/sw_drawing.py` | `references/drawing.md` |
+| Export | `scripts/sw_export.py` | `references/export.md` |
+| Dimension updates and custom properties | `scripts/sw_document_data.py` | `references/advanced.md` |
+| Assembly BOM CSV and Pack and Go | `scripts/sw_delivery.py` | `references/export.md` |
+| High-fidelity OBJ/STL references | `scripts/sw_import_mesh_reference.py` | `references/mesh-reference-import.md` |
+| Result review | `scripts/sw_review.py` | `references/review.md` |
+| Semantic entity references | `scripts/sw_entity_reference.py` | Gradually replace Face1/Edge1 and screen coordinates |
+| DFM manufacturing-risk review | `scripts/dfm_review.py`, `scripts/dfm_profiles.py`, `scripts/cad_studio.py check-dfm` | Supplier profiles, B-Rep evidence, structured machining/sheet-metal/laser/printing rules |
+| Neutral Routing review and preflight | `scripts/routing_review.py`, `scripts/cad_studio.py check-routing`, `scripts/cad_studio.py routing-preflight` | Endpoints, segments, lengths, bend radii, collision/clearance, supports, BOM; native writes require add-in/license evidence |
+| FEA preflight, input, restricted solving | `scripts/fea_analysis.py`, `scripts/fea_convergence.py`, `scripts/cad_studio.py fea-preflight/prepare-fea/run-fea/run-fea-convergence` | Historical CalculiX 2.23 linear/nonlinear statics, plasticity, face contact, final COPEN/CPRESS/CSLIP, and mesh convergence; engineering review remains mandatory |
+| Advanced surfaces and molds | `scripts/advanced_geometry.py`, `scripts/advanced_geometry_ocp.py`, `scripts/advanced_surface_ocp.py`, `scripts/cad_studio.py review-advanced-geometry/create-ocp-loft/create-ocp-surface` | Ruled/smooth Loft and restricted Sweep/Knit/Thicken write/reopen B-Rep; G1/G2 and curvature radii are sampled evidence only |
+| Local MCP server | `mcp-server/server.py` | `mcp-server/README.md`, `references/mcp-server.md` |
+| MCP protocol validation | `scripts/validate_mcp.py` | `mcp-server/README.md` |
+| Verification of unwrapped APIs | - | `references/api-lookup.md` |
+| OpenClaw integration | - | `references/openclaw.md` |
+| Sheet metal/weldments/simulation/properties | - | `references/advanced.md` |
+| Enterprise agents / local-first and cloud RAG | `apps/desktop/cad_workbench/knowledge_retrieval.py` | `references/enterprise-agent-rag.md` |
 | Codex/Claude/Gemini/OpenCode Provider Adapter | `apps/desktop/cad_workbench/agent_providers.py` | `references/agent-provider-architecture.md` |
-| 综合机械工程 DAG 自动编排 | `apps/desktop/cad_workbench/engineering_orchestrator.py` | `references/complex-mechanical-routing.md` |
-| 常见错误排查 | - | `references/troubleshooting.md` |
+| Mechanical engineering DAG orchestration | `apps/desktop/cad_workbench/engineering_orchestrator.py` | `references/complex-mechanical-routing.md` |
+| Troubleshooting | - | `references/troubleshooting.md` |
 
-Pack and Go 在 SW2026 SP01.1 的基础两零件装配上已连续三次通过原生回归：`SavePackAndGo()` 实际输出装配体和两个零件，状态码均为 0，未使用暂存回退。部分版本的 `GetDocumentNames()` 仍可能在保存前只枚举顶层文件；不要用 `AddExternalDocuments` 补装配体原生零件，应先执行原生保存，再审计实际落盘依赖。若落盘仍缺依赖，`scripts/sw_delivery.py::pack_and_go()` 默认按 `GetDependencies2` 生成带 manifest 和 SHA-256 的 `pilot` 暂存包；需要严格原生语义时使用 `fallback_policy="blocked"`。外部引用、Toolbox、配置和工程图仍必须人工复核，因此总能力保持 `pilot`。
+In three historical SW2026 SP01.1 regressions on a basic two-part assembly, native `SavePackAndGo()` wrote the assembly and both parts with status codes 0 and no staging fallback. Some versions may enumerate only the top level before saving. Do not use `AddExternalDocuments` to add native assembly parts; save natively first, then audit actual dependencies. If files remain missing, `scripts/sw_delivery.py::pack_and_go()` defaults to a `pilot` package staged from `GetDependencies2`, with a manifest and SHA-256. Use `fallback_policy="blocked"` for strict native semantics. External references, Toolbox, configurations, and drawings still need human review; the overall capability remains `pilot`.
 
-## OpenClaw 协作方式
+## OpenClaw collaboration
 
-1. 先确认 SolidWorks 版本、界面语言、输入文件路径、输出路径，以及目标操作（建模 / 装配 / 出图 / 导出）。
-2. 优先复用 `{baseDir}/scripts` 下已有模块，不要重复手写 COM 连接逻辑。
-3. 在 OpenClaw 的 `exec` / `shell` 能力中执行短小、一次性的 Python 脚本，最小导入集如下：
+1. Establish SolidWorks version, interface language, input/output paths, and the intended operation: modeling, assembly, drawing, or export.
+2. Reuse `{baseDir}/scripts` modules instead of rewriting COM connection code.
+3. Run small, single-purpose Python scripts through OpenClaw `exec` / `shell`, using this minimal import set:
 
 ```python
 import sys
@@ -149,145 +149,145 @@ sys.path.insert(0, r"{baseDir}/scripts")
 from sw_connect import connect_solidworks, mm, deg, new_document
 ```
 
-4. 执行后检查返回对象是否为 `None`、保存/导出是否成功、输出文件是否落盘。
-5. 生成或修改模型后必须做结果自审查：导出至少一个等轴测预览图，必要时导出前/俯/右视图，并通过截图或 BMP 目视检查几何是否符合用户意图。
-6. 如果需要更完整的 OpenClaw 工作流、提示词示例和排障建议，再读取 `references/openclaw.md`。
+4. Check for `None`, saving/export success, and files actually written.
+5. After model creation/modification, export at least an isometric preview and front/top/right views when needed. Inspect screenshots/BMPs against the user's geometric intent.
+6. Consult `references/openclaw.md` for full workflows, prompts, and troubleshooting.
 
-## 使用流程
+## Workflow
 
-需要把模型上下文、建模计划与检查结果接成闭环时，先读 `references/closed-loop-modeling.md`。
-新入口复用原建模函数，只支持明确列出的基础动作；先只读观察与离线校验，再在新文档执行，
-按真实反馈决定继续、有限重试或返回修订。未支持的圆倒角、装配等任务继续使用原专项流程，
-不得静默省略步骤；本入口不覆盖或替换既有功能。
+To connect model context, planning, and verification, first read `references/closed-loop-modeling.md`.
+The new entry reuses existing modeling functions and supports only its listed basic actions. Observe read-only and validate offline before executing in a new document;
+continue, retry within limits, or request revision based on measured feedback. Unsupported fillet/chamfer or assembly tasks use the original specialized workflows.
+Do not silently omit steps; this entry does not replace existing capabilities.
 
-1. 先根据 `preferredBackend`、`requiredOutputs`、`nativeFormatRequired` 和 `fallbackPolicy` 判定后端；不要先假定必须有 SolidWorks。
-2. 需要原生 SolidWorks 格式时运行 `sw_preflight.py`；缺依赖则请求用户授权自动安装，缺 SolidWorks 则只阻断原生阶段。
-3. 不需要原生格式或允许开放格式回退时，运行 `python scripts/cad_studio.py write-open-format --input model.cadstudio.json --out-dir output`。
-4. 需要制造性快速复核时，运行 `python scripts/cad_studio.py check-dfm --input model.cadstudio.json --output output/dfm_report.json --process machining`；支持 `--profile supplier.json` 和 `--brep-evidence brep.json`。报告缺少材料、壁厚、K 因子、割缝、成型空间或要求的 B-Rep 证据时返回 `blocked`，规则通过也必须人工复核。
-5. 原生 SolidWorks 路线优先用 `SolidWorksSession()` 管理连接、打开、新建、保存、导出；需要底层控制时再组合 `sw_connect.py`、`sw_part.py` 等函数。
-6. 当用户需求偏自然语言、参数不完整或需要“行业知识库 + 提示词模板 + 参数化设计计划”时，先读取 `subskills/solidworks-vibecad/SKILL.md`，生成 `design_plan.json` 和执行摘要。
-7. 圆角/倒角很多的 CNC 件、安装座、连接块、支架，先读取 `subskills/solidworks-fillet-chamfer-cnc/SKILL.md`，按“基础体 -> 外轮廓圆角/倒角 -> 孔槽切除 -> 孔口倒角 -> 审查”的稳定顺序执行。
-8. 螺丝孔、螺纹孔、攻牙孔、M3/M4/M5/M6/M8 盲孔或通孔任务，先读取 `subskills/solidworks-threaded-holes/SKILL.md`；默认按“攻丝底孔 -> 尝试 Thread/CosmeticThread -> 可见 3D 螺旋线兜底 -> 孔口倒角 -> 属性和审查”的稳定路线执行。
-9. 普通盲孔、通孔、圆柱沉孔、锥形沉头孔、半圆端槽或孔阵列任务，读取 `references/complex-hole-features.md` 并优先调用 `scripts/sw_hole_features.py`；创建参数证据必须再与 `collect_geometry_measurements()`、`validate_hole_positions()` 和剖视图交叉复核。
-10. CAD、机械图纸、工程图、3D 打印外壳、开孔图、DWG、DXF、二维图纸、线稿转 CAD、批量改 DWG 或 AutoCAD 原生预览任务，先读取 `subskills/autocad-automation/SKILL.md`。机械/3D 打印开孔交付必须按可制造图纸处理：所有孔、槽、接口、水口、螺丝孔和螺丝柱同时给出规格、数量和定位尺寸；图面拥挤时用孔表/槽表，不得用长引线替代关键尺寸。普通“照图画 CAD”只保留原图矢量化线条，最终审查必须确认没有手工猜测的外围轮廓、五官辅助线、Logo 几何、水波线、替代文字或图内审查说明。
-11. 当用户要求真实产品“原版外观”“1:1 复刻”“不像概念版”，先读取 `references/mesh-reference-import.md`：公开网格/蓝图参考优先，不要在低保真手搓底稿上反复精修；需要导入 OBJ/STL 时优先用 `scripts/sw_import_mesh_reference.py`。
-12. 如果必须由大模型生成 VBA 宏，先使用 `sw_macro_guard.py` 做模型分流、代码校验、重试和本地模板兜底。
-13. 使用 `session.export()` 或 `sw_export.py` 保存/导出文件。
-14. 使用 `sw_review.py` 导出预览图并自审查；如果有 GUI/桌面截图能力，打开 SolidWorks 视图截图复核。
-15. 遇到钣金、焊件、复杂曲面、模具、Routing、Simulation/FEA、复杂 Motion 或配置族任务，先运行 `sw_capability_probe.py` 并读取 `references/complex-mechanical-routing.md`；Routing 使用 `routing-preflight/check-routing`，FEA 使用 `fea-preflight/prepare-fea/run-fea/run-fea-convergence`，复杂曲面使用 `review-advanced-geometry/create-ocp-loft/create-ocp-surface`。FEA 和高级曲面求解通过仍为 `review_required`。
-16. 需要企业/项目机械知识时读取 `references/enterprise-agent-rag.md`；默认只用本地知识，云 RAG 必须显式启用、声明 `external_network` 并完成人工审批。
-17. 当一个需求同时跨越零件、孔槽/圆角、装配 Mate、Motion、工程图/BOM 和多格式交付中的两个以上工程域时，调用 `apps/desktop/cad_workbench/engineering_orchestrator.py` 生成阶段 DAG。必须按依赖串行执行关键 CAD 写操作，每阶段独立保存产物和验收证据；局部修改只重规划受影响阶段及其后继，禁止把整项工程塞进一条超长 Prompt 后一次性宣称完成。
+1. Choose a backend from `preferredBackend`, `requiredOutputs`, `nativeFormatRequired`, and `fallbackPolicy`; do not assume SolidWorks is always required.
+2. For native SolidWorks output, run `sw_preflight.py`. Missing libraries require authorization before automatic installation; missing SolidWorks blocks only the native stage.
+3. For open-format output or permitted fallback, run `python scripts/cad_studio.py write-open-format --input model.cadstudio.json --out-dir output`.
+4. For a quick DFM review, run `python scripts/cad_studio.py check-dfm --input model.cadstudio.json --output output/dfm_report.json --process machining`, optionally with `--profile supplier.json` and `--brep-evidence brep.json`. Missing material, wall thickness, K-factor, kerf, forming space, or required B-Rep evidence returns `blocked`; passing rules still needs human review.
+5. Prefer `SolidWorksSession()` for connecting, opening, creating, saving, and exporting. Combine lower-level `sw_connect.py` / `sw_part.py` calls only when needed.
+6. For natural-language briefs, incomplete parameters, or industry knowledge plus prompt templates and parametric planning, read `subskills/solidworks-vibecad/SKILL.md` and generate `design_plan.json` plus an execution summary.
+7. For CNC mounts, blocks, or brackets with many fillets/chamfers, read `subskills/solidworks-fillet-chamfer-cnc/SKILL.md`. Use base volume, outer fillets/chamfers, hole/slot cuts, hole-mouth chamfers, then review.
+8. For screw/threaded/tapped M3/M4/M5/M6/M8 blind or through holes, read `subskills/solidworks-threaded-holes/SKILL.md`. Use tap-drill geometry, attempt Thread/CosmeticThread, visible 3D helix fallback, mouth chamfer, properties, and review.
+9. For ordinary blind/through/counterbore/countersink/obround/pattern tasks, read `references/complex-hole-features.md` and prefer `scripts/sw_hole_features.py`. Cross-check creation evidence with `collect_geometry_measurements()`, `validate_hole_positions()`, and section views.
+10. For CAD drawings, mechanical/3D-print enclosures, opening layouts, DWG/DXF, tracing, batch DWG edits, or native AutoCAD previews, first read `subskills/autocad-automation/SKILL.md`. Manufacturing drawings must specify every hole, slot, interface, water port, screw hole, and screw boss with size, count, and locating dimensions. Use hole/slot tables for crowded views, not long leaders in place of dimensions. For ordinary image tracing, retain only source-vectorized linework; reject invented outer contours, facial guides, logo geometry, wave lines, replacement text, or embedded review notes.
+11. For faithful original-product appearance or 1:1 replicas, read `references/mesh-reference-import.md`. Prefer public meshes/blueprints over repeated refinement of low-fidelity primitives; use `scripts/sw_import_mesh_reference.py` for OBJ/STL.
+12. If an LLM must generate VBA, first use `sw_macro_guard.py` for routing, validation, bounded retries, and local template fallback.
+13. Save/export with `session.export()` or `sw_export.py`.
+14. Export previews and review them with `sw_review.py`; if GUI/desktop capture is available, also inspect the SolidWorks view.
+15. For sheet metal, weldments, complex surfaces, molds, Routing, Simulation/FEA, complex Motion, or configuration families, run `sw_capability_probe.py` and read `references/complex-mechanical-routing.md`. Use `routing-preflight/check-routing` for Routing, `fea-preflight/prepare-fea/run-fea/run-fea-convergence` for FEA, and `review-advanced-geometry/create-ocp-loft/create-ocp-surface` for surfaces. Successful FEA/advanced-surface solving still means `review_required`.
+16. For company/project mechanical knowledge, read `references/enterprise-agent-rag.md`. Local knowledge is the default; cloud RAG requires explicit enablement, `external_network`, and human approval.
+17. If a task crosses two or more engineering domains among parts, holes/slots/fillets, mates, Motion, drawings/BOM, and multiformat delivery, generate a stage DAG with `apps/desktop/cad_workbench/engineering_orchestrator.py`. Serialize dependent CAD writes and retain artifacts and acceptance evidence per stage. Replan only affected stages and successors after a local change; do not claim an entire engineering task complete from one oversized prompt.
 
-### 机械图纸默认底线
+### Mechanical drawing baseline
 
-新建参数化机械模型的普通草图应由尺寸和几何关系完全定义，读取 `GetConstrainedStatus()==3`
-并验证驱动尺寸；使用 `sw_sketch_constraints` 审查，不能只通过整体 Fix 消除欠定义标记。
-标准紧固沉孔优先使用已验证的原生 Hole Wizard 接口，普通口袋/非标准几何仍可用切除。
-同一平面上规格和终止条件相同的多个沉孔，优先用 `create_native_counterbore_group`
-在一个孔向导特征的位置草图中放置多个点；只有孔型、规格、终止条件或支承面不同等原因才拆分特征。
-尚未验证的孔类型或标准应说明限制，不静默用几何替代品冒充原生特征。
+Ordinary sketches in new parametric mechanical models must be fully defined by dimensions and relations. Read `GetConstrainedStatus()==3`
+and verify driving dimensions with `sw_sketch_constraints`; do not eliminate underdefinition merely by Fixing the entire sketch.
+Prefer the verified native Hole Wizard interface for standard fastener counterbores. Ordinary pockets/nonstandard geometry may still use cuts.
+For identical counterbores on one plane with the same end condition, prefer `create_native_counterbore_group`
+to place multiple points in one Hole Wizard positioning sketch. Split features only for differing type, specification, end condition, support face, or another stated reason.
+State limits for unverified hole types or standards. Do not silently substitute geometric features and present them as native ones.
 
-L 形支架等需要筋时，先读 `references/native-ribs.md`，在任务自有新零件中使用原生 Rib，
-记录创建前后快照及回读检查；不要用旧的九参数 `InsertRib` 写法，也不要把切换到普通拉伸当作原生筋成功。
-该专项入口保留原建模与导出功能，不扩展 `sw_closed_loop` 的基础动作白名单。
+For ribs on an L-bracket or similar part, read `references/native-ribs.md` and create native Rib in a new task-owned part,
+recording before/after snapshots and readback. Do not use the obsolete nine-argument `InsertRib` or report an ordinary extrusion fallback as native Rib success.
+This specialized entry retains original modeling/export functions and does not expand the basic `sw_closed_loop` allowlist.
 
-以后凡是本技能参与 CAD/机械结构/3D 打印项目，都默认执行这些底线：
+Apply these defaults whenever the skill participates in CAD, mechanical structure, or 3D-printing work:
 
-1. 不把“看得懂的示意图”当成“能制造的工程图”。只要涉及开孔、开槽、接口、装配孔或打印外壳，必须补齐外形尺寸、壁厚/底厚、孔槽规格和定位尺寸。
-2. 用户要求“中国常用格式”“国标风格”“严格规范”时，必须采用国内机械制图习惯：规范图幅/图框/标题栏、仿宋中文、分层线型、中心线/虚线、真实标注实体和技术要求。
-3. 长引线只能做局部说明，不能替代尺寸链；不得跨视图、压孔、压中心线、压尺寸文字或侵入标题栏。
-4. 密集孔槽必须优先用孔表、槽表或孔槽明细表，表内写清部位、规格、数量和定位；表格不能成为逃避定位尺寸的借口。
-5. 交付前必须目视复核预览图，发现漏标、重叠、压线或标题栏侵入时先返工再汇报。
+1. A readable schematic is not a manufacturing drawing. Openings, slots, interfaces, mounting holes, and printed enclosures require overall dimensions, wall/base thickness, hole/slot sizes, and locating dimensions.
+2. When the user requests Chinese common practice, national-standard style, or strict drafting, use appropriate sheet sizes/borders/title blocks, FangSong Chinese text, layered line types, center/hidden lines, real dimension entities, and technical requirements.
+3. Long leaders provide local notes, not dimension chains. They must not cross views, cover holes/centerlines/dimension text, or enter the title block.
+4. Prefer hole/slot tables for dense layouts. Record location, size, count, and position; tables do not excuse missing locating dimensions.
+5. Visually review previews before delivery. Repair omissions, overlaps, crossed lines, and title-block intrusions before reporting completion.
 
-### 高还原外观/公开网格参考模型
+### Faithful appearance and public mesh references
 
-当用户要求汽车、消费电子、雕塑等真实对象外观高还原时，先区分“视觉参考模型”和“工程可制造参数模型”：
+For cars, consumer devices, sculptures, and other real objects, distinguish a visual reference from a manufacturable parametric engineering model:
 
-1. 若用户要“像原版”，优先索取或查找公开 3D 模型/多视图蓝图，并记录来源、作者、许可证和下载日期；不要声称生成的是官方 Class-A 或扫描级模型。
-2. `.glb/.gltf/.fbx/.blend` 先转换为 `.obj/.stl`；OBJ 优先保留材质，STL 作为无材质兜底。
-3. 导入前用包围盒确认坐标轴和尺度，再按真实公称尺寸缩放。
-4. 如果需要 Python 转换/缩放，先确认 `requirements-mesh.txt` 中的可选依赖可用；缺失时说明用途并提示安装。
-5. OBJ/STL 导入 SolidWorks 时用 `sw_import_mesh_reference.py`；关键写法是 `LoadFile4(path, "r", create_empty_dispatch_variant(), errors)`，不要用 `OpenDoc6()` 或把 `None` 传给 `LoadFile4()`。
-6. 结果审查必须看四视图和关键识别特征；“预览非空白”不能替代“像用户指定对象”。
-7. 若用户后续要工程可编辑结构，应基于网格参考分件逆向重建，并明确说明网格导入件不是参数化实体。
+1. For original-product likeness, request/find public 3D models or multiple-view blueprints and record source, author, license, and download date. Do not claim official Class-A or scan-quality geometry.
+2. Convert `.glb/.gltf/.fbx/.blend` to `.obj/.stl`; prefer OBJ for materials and STL as a material-free fallback.
+3. Confirm axes and scale from bounds before import, then scale to actual nominal dimensions.
+4. For Python conversion/scaling, check optional `requirements-mesh.txt` dependencies, explain their purpose if missing, and request installation.
+5. Import OBJ/STL with `sw_import_mesh_reference.py`. Use `LoadFile4(path, "r", create_empty_dispatch_variant(), errors)`, not `OpenDoc6()` or `None` import data.
+6. Review four views and identifying features. A nonblank preview is not proof of likeness.
+7. If editable engineering structure is later required, reverse-engineer separate parts from the reference and explain that the imported mesh is not a parametric solid.
 
-### 多色外观要求
+### Multicolor appearance
 
-当模型包含车身、玻璃、灯组、轮胎、轮毂或其他多种颜色时：
+For bodywork, glass, lights, tires, wheels, or other multicolor models:
 
-1. 读取 `references/appearance.md`，统一使用 `sw_appearance.py`，禁止把普通 Python `list` 直接传给 COM 材质属性。
-2. 源零件先设置文档级颜色；装配体中需要覆盖时再用组件级颜色。
-3. 每次设置后调用 `verify_appearance()` 或 `apply_component_palette()` 回读 RGB；只检查 setter 返回值不算通过。
-4. 保存与截图前调用 `model.ClearSelection2(True)`；`sw_review.save_preview()` 已内置该清理。
-5. 目视确认至少三种预期颜色真实可见；“预览非空白”不能替代颜色检查。
-6. 外观异常时先运行 `tests/solidworks_appearance_regression.py`，再重建用户模型。
+1. Read `references/appearance.md` and use `sw_appearance.py`; never pass a normal Python `list` directly to COM material properties.
+2. Set source-part document colors first; use assembly-component overrides where needed.
+3. Read RGB back with `verify_appearance()` or `apply_component_palette()` after each write. A setter return alone cannot pass.
+4. Call `model.ClearSelection2(True)` before saving/capture; `sw_review.save_preview()` includes this cleanup.
+5. Visually confirm that at least three expected colors are visible. Nonblank previews are insufficient.
+6. For appearance problems, run `tests/solidworks_appearance_regression.py` before rebuilding the user's model.
 
-### MCP Server 使用
+### MCP server
 
-当用户要求“让 SolidWorks 支持 MCP”“接入 Codex/Claude Desktop 工具调用”“不要每次生成一大段 Python 脚本”时：
+When the user asks for MCP support, Codex/Claude Desktop tool integration, or reusable tools instead of repeatedly generated Python:
 
-1. 读取 `mcp-server/README.md`。
-2. 若用户要求自动配置 MCP，优先运行多客户端注册器：`powershell -ExecutionPolicy Bypass -File mcp-server/register_all_ai_mcp.ps1 -InstallDependencies`；它会尝试注册 Codex、Claude Code、Claude Desktop、Cursor、Windsurf。
-3. 使用本地 `stdio` MCP server：`python mcp-server/server.py`。
-4. 无 CAD 开放格式写入优先调用 `cadstudio_write_open_format`；DFM、Routing、FEA 和复杂几何分别调用 `cadstudio_check_dfm`、`cadstudio_check_routing`、`cadstudio_routing_preflight`、`cadstudio_fea_preflight`、`cadstudio_prepare_fea`、`cadstudio_run_fea`、`cadstudio_run_fea_convergence`、`cadstudio_review_advanced_geometry`、`cadstudio_create_ocp_loft`、`cadstudio_create_ocp_surface`；SolidWorks 原生操作再调用白名单 `solidworks_*` 工具。
-5. 不要暴露任意 Python/VBA 执行工具；新增 MCP 工具时应复用 `scripts/sw_*.py` 中已验证封装。
-6. SolidWorks COM 操作必须串行执行；MCP server 内部已使用全局锁降低桌面会话冲突。
-7. 基准 demo 使用 `examples/08_mini_fan_motion_assembly.py`；它验证自动建模、装配、Mate 和 Motion Study，不承诺圆角/倒角外观完美。
+1. Read `mcp-server/README.md`.
+2. If automatic configuration is requested, prefer `powershell -ExecutionPolicy Bypass -File mcp-server/register_all_ai_mcp.ps1 -InstallDependencies`; it attempts Codex, Claude Code, Claude Desktop, Cursor, and Windsurf registration.
+3. Run the local `stdio` server with `python mcp-server/server.py`.
+4. Prefer `cadstudio_write_open_format` for headless writing. Use `cadstudio_check_dfm`, `cadstudio_check_routing`, `cadstudio_routing_preflight`, `cadstudio_fea_preflight`, `cadstudio_prepare_fea`, `cadstudio_run_fea`, `cadstudio_run_fea_convergence`, `cadstudio_review_advanced_geometry`, `cadstudio_create_ocp_loft`, and `cadstudio_create_ocp_surface` for their respective gates. Use allowlisted `solidworks_*` tools for native actions.
+5. Do not expose arbitrary Python/VBA execution. New MCP tools must reuse verified `scripts/sw_*.py` wrappers.
+6. Serialize SolidWorks COM operations; the server's global lock reduces session conflicts.
+7. Use `examples/08_mini_fan_motion_assembly.py` as a baseline for modeling, assembly, mates, and Motion Study. It does not promise perfect fillet/chamfer appearance.
 
-### 运动装配体要求
+### Moving assemblies
 
-当用户要求“能动起来”“在 SolidWorks 里拖动”“铰链”“齿轮联动”“真实机械配合”时：
+For interactive dragging, hinges, coupled gears, or real mechanical mates:
 
-1. 先读取 `references/assembly.md` 的运动型装配工作流；如果用户明确要求 Motion Study / 运动算例 / 马达，再读取 `references/motion-study.md`。
-2. 优先复用 `sw_assembly.py` 中的 `resolve_component()`、`get_assembly_entity()`、`find_largest_cylinder_face()`、`add_mate5_checked()`、`add_concentric_mate_by_cylinders()`、`add_gear_mate_by_cylinders()`。
-3. 旋转件用同心 Mate 且 `lock_rotation=False`，不要用三基准面把轴、齿轮、上盖完全锁死。
-4. 齿轮传动用真实 Gear Mate，不用脚本假动画冒充机械配合。
-5. 创建后用 `collect_mate_feature_summary()` 或特征树遍历验证 MateGroup 下存在 `MateConcentric`、`MateGearDim` 等真实 Mate 特征。
-6. 需要真实运动算例时，优先复用 `sw_motion.create_motion_study()`、`add_constant_speed_rotary_motor_by_cylinders()`、`calculate_and_play()` 创建 Motion Study 和马达。
-7. 计算后调用 `sw_motion.validate_motion_studies()` 或 MCP `solidworks_validate_motion_study`，检查类型、时长、马达数量、结果存在性和 `results_out_of_date=False`；只看到时间轴、动画或 `Calculate=True` 不算验收通过。
-8. 需要演示动画时可以额外脚本驱动组件位姿或 Mate Controller，但必须说明动画演示不等同于交互自由度；最终以 SolidWorks 中可拖动为准。
+1. Read the moving-assembly workflow in `references/assembly.md`; also read `references/motion-study.md` if Motion Study or a motor is explicitly requested.
+2. Prefer `resolve_component()`, `get_assembly_entity()`, `find_largest_cylinder_face()`, `add_mate5_checked()`, `add_concentric_mate_by_cylinders()`, and `add_gear_mate_by_cylinders()` in `sw_assembly.py`.
+3. Use concentric mates with `lock_rotation=False`; do not fully lock shafts, gears, or covers with three reference planes.
+4. Use real Gear Mates, not script animation presented as mechanical coupling.
+5. Verify real `MateConcentric`, `MateGearDim`, and other MateGroup children with `collect_mate_feature_summary()` or feature traversal.
+6. For a real study, reuse `sw_motion.create_motion_study()`, `add_constant_speed_rotary_motor_by_cylinders()`, and `calculate_and_play()`.
+7. After calculation, call `sw_motion.validate_motion_studies()` or MCP `solidworks_validate_motion_study`. Check type, duration, motor count, results, and `results_out_of_date=False`. A timeline, animation, or `Calculate=True` is insufficient.
+8. Additional pose-driven or Mate Controller animation may demonstrate motion, but disclose that animation is not interactive freedom. Final verification is dragging successfully in SolidWorks.
 
-## GPT / Kimi / Claude 多模型策略
+## GPT / Kimi / Claude macro strategy
 
-当代理需要让大模型生成 VBA 宏时，必须通过 `scripts/sw_macro_guard.py`：
+LLM-generated VBA must pass through `scripts/sw_macro_guard.py`:
 
-1. **模型分流**：GPT 系列使用原有简洁提示词；Kimi / Claude / 未知模型自动加载强格式约束 Prompt，强制只输出 VBA 源码。
-2. **本地模板兜底**：模型输出失败或解析失败时，不直接报错；按用户关键词（如“立方体”“圆柱”“拉伸”“草图”）选择内置 VBA 模板继续执行。
-3. **输出校验**：执行前检查 `SldWorks`、`ModelDoc2`、`Sub`、`End Sub`，通过后才允许交给 SolidWorks；不通过则重试。
-4. **超时/重试**：单次模型请求建议 `30s` 超时；解析失败自动重试 `1~2` 次，重试 Prompt 追加更强格式指令。
+1. **Model routing**: GPT uses concise prompts; Kimi, Claude, and unknown models receive strict formatting instructions requiring VBA source only.
+2. **Local fallback**: after output/parsing failure, select a built-in VBA cube/cylinder/extrusion/sketch template by task keywords rather than immediately giving up.
+3. **Output validation**: check `SldWorks`, `ModelDoc2`, `Sub`, and `End Sub` before handing code to SolidWorks; retry invalid output.
+4. **Timeout/retry**: use a suggested `30s` request timeout and `1–2` parsing retries with stronger formatting instructions.
 
-示例：
+Example:
 
 ```python
 from sw_macro_guard import build_prompt, fallback_macro_for_request, validate_vba_macro
 
-prompt = build_prompt("画一个 50mm 圆柱", model_name="claude")
-macro = fallback_macro_for_request("画一个 50mm 圆柱")
+prompt = build_prompt("Draw a 50 mm cylinder", model_name="claude")
+macro = fallback_macro_for_request("Draw a 50 mm cylinder")
 result = validate_vba_macro(macro)
 assert result.ok, result.issues
 ```
 
-## 未封装 API 规则
+## Rules for unwrapped APIs
 
-当任务需要调用 `scripts/` 中尚未封装的 SolidWorks API 时：
+Before calling a SolidWorks API not wrapped in `scripts/`:
 
-1. 先读取 `references/api-lookup.md`，再查询 SolidWorks 官方 API 文档，或本地 SolidWorks SDK / 参考资料，确认方法签名、参数含义、枚举值、返回值和版本差异。
-2. 禁止凭记忆猜接口；尤其是长参数 COM 方法、`VARIANT` / by-ref 参数、枚举值、选择标记和 `SaveAs` 类接口。
-3. 写代码时保留最小可运行脚本，并对每一步返回值做 `None` / `False` 检查。
-4. 实现后必须真实运行，保存或导出目标文件，并使用 `sw_review.py` 生成预览图与审查报告。
-5. 新发现的坑、错误码、兼容写法或稳定封装，要补充到 `references/troubleshooting.md` 或对应模块参考文档；常用逻辑再沉淀进 `scripts/`。
+1. Read `references/api-lookup.md`, then official API documentation or the local SDK/reference material. Confirm signatures, argument meanings, enums, returns, and version differences.
+2. Never guess interfaces from memory, especially long COM signatures, `VARIANT` / by-ref parameters, enums, selection marks, and `SaveAs` APIs.
+3. Retain a minimal executable script and check every return for `None` / `False`.
+4. After implementation, execute it for real, save/export the target, and generate previews/review reports with `sw_review.py`.
+5. Record newly discovered pitfalls, codes, compatibility patterns, and stable calls in `references/troubleshooting.md` or the relevant module reference; move reusable logic into `scripts/`.
 
-## 结果自审查
+## Result review
 
-每次生成、修改、导入或导出 CAD 后都要做自审查，除非用户明确说不需要：
+After generating, modifying, importing, or exporting CAD, review the result unless the user explicitly waives review:
 
-1. 检查 COM 返回值、特征对象、保存/导出返回值和输出文件大小。
-2. 调用 `model.ForceRebuild3(False)`、`model.ViewZoomtofit2()` 刷新模型。
-3. 用 `scripts/sw_review.py` 的 `run_review()` 导出 `isometric/front/top/right` 预览图并写入 `*_review_report.json`。
-4. 读取报告里的 `evaluation.status`、`evaluation.issues`、`checks` 和预览图；通过截图或导出的 BMP 检查：主体是否存在、比例/方位是否合理、关键部件是否缺失、是否明显重叠或悬空、文件名和输出路径是否正确。
-5. 若发现问题，先修脚本并重新生成，再汇报；不要只报告“保存成功”。
+1. Check COM returns, features, save/export status, and file size.
+2. Refresh the task model with `model.ForceRebuild3(False)` and `model.ViewZoomtofit2()`.
+3. Export `isometric/front/top/right` previews and `*_review_report.json` using `scripts/sw_review.py::run_review()`.
+4. Inspect `evaluation.status`, `evaluation.issues`, `checks`, and screenshots/BMPs. Confirm the main body, proportions/orientation, required components, overlaps/floating parts, filenames, and output paths.
+5. Repair the script and regenerate before reporting problems resolved; saving alone is insufficient.
 
-示例：
+Example:
 
 ```python
 from sw_review import run_review
@@ -303,16 +303,16 @@ print(report_path)
 print(report["evaluation"])
 ```
 
-## 关键注意事项
+## Key notes
 
-- **单位**：API 统一使用**米**。用 `mm(50)` 转换 50mm 为 0.05m，用 `deg(90)` 转换角度
-- **版本**：使用 `SldWorks.Application` 自动连接，兼容所有版本
-- **选择**：能拿到 COM 对象时优先用对象级 `Select2()`；基准面可用 `SelectByID2("PLANE")`，草图不要只依赖 `SelectByID2("SKETCH")`
-- **草图**：推荐用 `with sketch(model, "Front Plane") as sketch_name:` 自动进入/退出草图；`sw_part.py` 会缓存草图对象引用，避免 SW2024 中文版按名称选择草图失败
-- **添加组件**：装配体优先用 `sw_assembly.add_component()`；SW2024 中文版下 `AddComponent4` 可能返回 `None`，封装会用 `AddComponent5`、静默打开零件、重新激活装配体后重试
-- **外观**：对颜色要求高的模型优先拆成多零件装配体；材质数组必须用 `SAFEARRAY(double)` 编组，并回读 RGB 验证
-- **VARIANT**：by-ref 参数必须用 `VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)` 包装
-- **基准面名称**：`start_sketch()` 会自动兼容英文版 "Front/Top/Right Plane" 与中文版 "前视/上视/右视基准面"
-- **草图坐标**：基于草图平面的局部坐标系，单位为米
-- **运动装配**：先解析组件再选 Mate 实体；`GetCorresponding()` 用于把零件内面/特征映射到装配体上下文；同心 Mate 默认不锁旋转
-- **Motion Study**：`swmotionstudy.tlb` 需加载；pywin32 下 `CreateMotionStudy` / `Activate` / `Calculate` 可能表现为属性，优先用 `sw_motion.motion_member()` 兼容
+- **Units**: API lengths use **meters**. `mm(50)` converts 50 mm to 0.05 m; `deg(90)` converts degrees to radians.
+- **Versions**: `SldWorks.Application` is the version-independent connection ProgID. The upstream shorthand described broad compatibility; it does not establish verified support on every version.
+- **Selection**: prefer object-level `Select2()` when a COM reference is available. Planes can use `SelectByID2("PLANE")`; sketches must not rely solely on `SelectByID2("SKETCH")`.
+- **Sketches**: prefer `with sketch(model, "Front Plane") as sketch_name:` for entry/exit. `sw_part.py` caches the sketch object to avoid Chinese-language SW2024 name-selection failures.
+- **Component insertion**: prefer `sw_assembly.add_component()`. When Chinese-language SW2024 `AddComponent4` returns `None`, the wrapper tries `AddComponent5`, silently loads the part, reactivates the assembly, and retries.
+- **Appearance**: for color-critical work, prefer multipart assemblies. Marshal material arrays as `SAFEARRAY(double)` and verify RGB readback.
+- **VARIANT**: wrap by-ref arguments with `VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)`.
+- **Plane names**: `start_sketch()` supports English `"Front/Top/Right Plane"` and Chinese localized aliases documented in `references/part-modeling.md`.
+- **Sketch coordinates**: use the local sketch-plane coordinate system in meters.
+- **Moving assemblies**: resolve components before selecting mate entities. `GetCorresponding()` maps part faces/features to assembly context; concentric mates should leave rotation unlocked.
+- **Motion Study**: load `swmotionstudy.tlb`. `CreateMotionStudy` / `Activate` / `Calculate` may be properties under pywin32; use `sw_motion.motion_member()` for compatibility.

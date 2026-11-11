@@ -1,32 +1,43 @@
-# v0.1 验证记录
+# v0.1 validation record
 
-日期：2026-11-10。环境：Windows、Python 3.12、SolidWorks 2025 SP2.0（revision 33.2.0）。
-这些是本次本机执行结果，GitHub Actions 的运行状态需另看仓库 Actions 页面。
+Date: 2026-11-10. Environment: Windows, Python 3.12, SolidWorks 2025 SP2.0 (revision 33.2.0).
+These results come from the recorded local run. Check the repository's Actions page separately for GitHub Actions status.
 
-## 离线与接口检查
+## Offline and interface checks
 
-- 明确列出的七个离线测试文件：**242 passed，1 skipped**。
-- 跳过项是本机不允许创建真实符号链接；模拟 reparse 路径拒绝测试通过。
-- Skill 结构、Python/JSON 语法与示例请求校验通过。
-- MCP 协议清单校验通过：41 个工具可见，包括 4 个 ModelOps 统一工具。
+- The seven explicitly listed offline test files: **242 passed, 1 skipped**.
+- The skipped case requires creating a real symbolic link, which this machine did not permit. Simulated reparse-path rejection tests passed.
+- Skill structure, Python/JSON syntax, and example request validation passed.
+- MCP protocol inventory validation passed: 41 visible tools, including 4 unified ModelOps tools.
 
-## 真实 CAD 同题回归
+## Native CAD regression suite
 
-规格：100×60 mm 四孔板，四个 Ø6 通孔，孔中心为 (±40, ±20) mm。
-独立解析体积为 `(100×60 − 4π×3²)×厚度`；体积容差 0.1 mm³，包围盒及孔位/孔径容差 0.05 mm。
+Fixture: a 100 × 60 mm plate with four Ø6 through holes, centered at (±40, ±20) mm.
+The independent analytical volume is `(100×60 − 4π×3²)×thickness`; volume tolerance is 0.1 mm³, and bounds, hole-position, and hole-diameter tolerances are 0.05 mm.
 
-| 题目 | 已执行的行为 | 结果 |
+| Case | Executed behavior | Result |
 |---|---|---|
-| 创建 | 生成 8 mm 四孔板，检查几何、全约束、原生文件及 STEP 重开 | 通过 |
-| 改尺寸 | 在磁盘副本中将厚度 8→12 mm，并回读尺寸与几何 | 通过 |
-| 失败恢复 | 实际改到 14 mm，因故意错误的体积要求而失败，再恢复至 12 mm | 预期失败及恢复均验证通过；原改模任务仍失败 |
-| 独立进程恢复 | 新 Python 进程读取检查点，重开原生副本并重新导出验证 | 通过 |
+| Create | Generate the 8 mm four-hole plate; check geometry, full sketch definition, native output, and reopened STEP | Passed |
+| Edit dimension | Change thickness from 8 to 12 mm in a disk copy; read back dimensions and geometry | Passed |
+| Recover failed edit | Actually change thickness to 14 mm, fail an intentionally incorrect volume requirement, then restore to 12 mm | Expected failure and recovery both verified; the original edit task remains unsuccessful |
+| Restore in an independent process | Read the checkpoint in a new Python process, reopen the native copy, and export again for validation | Passed |
 
-四题均通过原会话保护检查。保护范围为所有原文档的 COM 身份、元数据、可读取选择状态和已枚举磁盘文件；
-原活动文档额外比较几何与特征。没有对全部后台文档进行完整几何审计，也不声称所有未枚举引用均被验证。
+All four cases passed the original-session protection checks. These cover the COM identities, metadata,
+readable selection states, and enumerated disk files of all original documents. Geometry and features
+were additionally compared for the original active document. No complete geometry audit was performed
+for all background documents; unenumerated references are outside the verified scope.
 
-本次还覆盖了大装配超过 1000 个已加载文档的前置检查问题、内部装配名称查询回退，以及 SW 将文件扩展名
-规范为大写后仍正确识别同一 Windows 文件。对应纯离线回归保留在原生适配器测试中。
+This work also covered preflight handling for a large assembly with more than 1,000 loaded documents,
+fallback lookup using internal assembly names, and recognition of the same Windows file after SolidWorks
+normalizes its extension to uppercase. Corresponding offline regression tests are retained in the native adapter test suite.
 
-公开的 [机器可读摘要](validation/2026-11-10.json) 仅保留测试规格和检查结果；原始报告包含本机项目路径，未随公开源码发布。
-本次证据不外推到其他 SW 版本、配置族、外部引用零件、装配修改或任意复杂机械设计。能力等级保持 **pilot**。
+The public [machine-readable summary](validation/2026-11-10.json) contains only the fixture specifications
+and check results. Original reports contain local project paths and are excluded from the public source release.
+These results do not establish support for other SolidWorks versions, configuration families, parts with
+external references, assembly editing, or arbitrary complex mechanical designs. The capability remains **pilot**.
+
+## English documentation and showcase refresh — 2026-11-11
+
+The same seven-file offline test set was rerun: **242 passed, 1 skipped**. Skill validation, UTF-8 skill metadata validation, all three example request validators, and regression-suite contract validation passed. The four-case native transaction results above remain the recorded 2026-11-10 run.
+
+The new independent XY-stage showcase was imported and previewed in SolidWorks 2025 SP2.0. It contains 226 components; 21 source prototypes passed OCCT validity and positive-volume checks. Component colors were read back successfully, and the original active document state and working directory were restored. These are visualization and session checks; full assembly geometry measurements, mates, fit, motion, and loads were not validated. See [SHOWCASE.md](SHOWCASE.md) for the reproduction procedure and evidence scope.

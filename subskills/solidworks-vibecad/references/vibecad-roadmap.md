@@ -1,76 +1,76 @@
-# VibeCAD 工程化路线
+# VibeCAD engineering roadmap
 
-## 方向判断
+## Direction
 
-有价值的不是“让 LLM 临时 vibe 一段 SolidWorks 代码”，而是把重复机械设计沉淀成：
+Capture repeated mechanical design work as reusable engineering assets:
 
 ```text
-行业知识库 + 参数 schema + 提示词模板 + 稳定 API 封装 + 自动审查
+Domain knowledge + parameter schema + planning prompts + reliable API wrappers + automated review
 ```
 
-LLM 负责理解意图和补齐参数；SolidWorks API 负责确定性执行；知识库负责工程正确性；审查链路负责防止假成功。
+The LLM interprets intent and fills in parameters; the SolidWorks API performs deterministic operations; the knowledge base supplies engineering rules; the review workflow detects false success.
 
-## 第一阶段：计划闭环
+## Phase 1: Planning workflow
 
-已完成：
+Completed:
 
-- CNC 安装座示例需求
-- 参数化设计计划 JSON
-- 制造规则知识库初版
-- LLM 规划提示词模板
-- SolidWorks 执行摘要
-- JSON 和 Python 语法验证
+- Example brief for a CNC mounting base
+- Parametric design-plan JSON
+- Initial manufacturing-rule knowledge base
+- LLM planning prompt template
+- SolidWorks execution outline
+- JSON and Python syntax validation
 
-可继续补充：
+Potential additions:
 
-- 更多零件族：连接块、L 型支架、轴类、钣金外壳
-- 更多标准件规则：轴承、联轴器、电机法兰、沉头螺钉、定位销
-- 更严格 schema：尺寸范围、孔距边距、工艺约束
+- More part families: connector blocks, L-brackets, shafts, and sheet-metal enclosures
+- More standard-component rules: bearings, couplings, motor flanges, countersunk screws, and locating pins
+- Stricter schemas for dimension ranges, hole pitch and edge distance, and process constraints
 
-## 第二阶段：真实 SolidWorks 执行器
+## Phase 2: Native SolidWorks executor
 
-优先做 `cnc_mount` 执行器：
+Prioritize a `cnc_mount` executor:
 
-1. 运行 `sw_preflight.py`。
-2. 读取 `design_plan.json`。
-3. 使用 `SolidWorksSession()` 新建零件。
-4. 按计划创建底板、孔、口袋、圆角、倒角。
-5. 保存 `SLDPRT`，导出 `STEP`。
-6. 调用 `sw_review.run_review()`。
-7. 读取审查报告，不通过则自动降级重试。
+1. Run `sw_preflight.py`.
+2. Read `design_plan.json`.
+3. Create a part using `SolidWorksSession()`.
+4. Create the planned base plate, holes, pockets, fillets, and chamfers.
+5. Save `SLDPRT` and export `STEP`.
+6. Call `sw_review.run_review()`.
+7. Read the review report and use a recorded fallback and retry if the checks fail.
 
-关键原则：
+Key principles:
 
-- 所有 SolidWorks API 长参数调用都必须有返回值检查。
-- 所有尺寸从 mm 转为米必须走 `sw_connect.mm()`。
-- 圆角/倒角选边必须优先用对象 `edge.Select2()`。
-- 螺纹孔必须先保证攻丝底孔、孔口倒角和属性正确。
+- Check return values from every long-argument SolidWorks API call.
+- Convert all mm dimensions to meters through `sw_connect.mm()`.
+- Prefer edge-object selection with `edge.Select2()` for fillets and chamfers.
+- For threaded holes, establish correct tap-drill geometry, mouth chamfer, and metadata first.
 
-## 第三阶段：知识库变厚
+## Phase 3: Expand the knowledge base
 
-优先沉淀这些高频规则：
+Prioritize frequent rules:
 
-- M3/M4/M5/M6/M8/M10 粗牙、细牙、攻丝底孔
-- 螺钉通孔、沉孔、沉头孔推荐尺寸
-- CNC 最小壁厚、最小圆角、倒角默认值
-- 钣金折弯半径、K 因子、展开补偿
-- 轴承座孔、公差配合、卡簧槽
-- 电机安装孔距和法兰标准
+- M3/M4/M5/M6/M8/M10 coarse and fine threads and tap drills
+- Recommended screw clearance, counterbore, and countersink dimensions
+- CNC minimum wall thickness, minimum fillet radius, and chamfer defaults
+- Sheet-metal bend radius, K-factor, and bend allowance
+- Bearing bores, tolerances and fits, and retaining-ring grooves
+- Motor mounting-hole patterns and flange standards
 
-## 第四阶段：交互入口
+## Phase 4: User interfaces
 
-最终形态可以是：
+Possible interfaces:
 
-- 命令行：一条 brief 生成计划并建模
-- MCP：让 Codex/Claude 通过工具调用 SolidWorks
-- 本地小 Web UI：输入需求、调参数、预览审查结果
-- 模板库：成功案例可保存为可复用设计模板
+- CLI: a brief generates a plan and model in one workflow
+- MCP: Codex or Claude operates SolidWorks through tool calls
+- Small local web UI: enter requirements, adjust parameters, and preview review results
+- Template library: successful cases become reusable design templates
 
-## 衡量指标
+## Metrics
 
-- 重复建模时间减少比例
-- 首次建模成功率
-- 自动审查通过率
-- 人工修改次数
-- 模板复用次数
-- 失败原因是否能沉淀回知识库
+- Reduction in time spent on repeated modeling
+- First-attempt modeling success rate
+- Automated review pass rate
+- Number of manual changes
+- Template reuse count
+- Whether failure causes are captured in the knowledge base

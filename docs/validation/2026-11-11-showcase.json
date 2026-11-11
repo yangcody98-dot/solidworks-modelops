@@ -1,0 +1,180 @@
+{
+  "date": "2026-11-11",
+  "purpose": "independent static assembly visualization",
+  "source": "examples/09_xy_stage_visual_demo.py",
+  "modeling_backend": "OCCT/OCP",
+  "ocp_version": "7.9.3.1.1",
+  "component_count": 226,
+  "prototype_count": 21,
+  "prototype_checks": [
+    {
+      "name": "base",
+      "valid": true,
+      "volume_mm3": 1085665.1224716054
+    },
+    {
+      "name": "x_rail",
+      "valid": true,
+      "volume_mm3": 47551.15420892236
+    },
+    {
+      "name": "y_rail",
+      "valid": true,
+      "volume_mm3": 30881.97138057651
+    },
+    {
+      "name": "carriage",
+      "valid": true,
+      "volume_mm3": 19124.73995982688
+    },
+    {
+      "name": "carriage_cap",
+      "valid": true,
+      "volume_mm3": 3465.8814680762684
+    },
+    {
+      "name": "middle_plate",
+      "valid": true,
+      "volume_mm3": 465743.19307802204
+    },
+    {
+      "name": "top_plate",
+      "valid": true,
+      "volume_mm3": 250214.78961703338
+    },
+    {
+      "name": "bearing",
+      "valid": true,
+      "volume_mm3": 23424.87195578289
+    },
+    {
+      "name": "bearing_foot",
+      "valid": true,
+      "volume_mm3": 10451.355842954892
+    },
+    {
+      "name": "motor",
+      "valid": true,
+      "volume_mm3": 80204.80000000002
+    },
+    {
+      "name": "motor_flange",
+      "valid": true,
+      "volume_mm3": 10772.92926697634
+    },
+    {
+      "name": "motor_hub",
+      "valid": true,
+      "volume_mm3": 1809.5573684677206
+    },
+    {
+      "name": "coupling",
+      "valid": true,
+      "volume_mm3": 6203.765844896836
+    },
+    {
+      "name": "screw_x",
+      "valid": true,
+      "volume_mm3": 15533.510627895148
+    },
+    {
+      "name": "screw_y",
+      "valid": true,
+      "volume_mm3": 11532.786631328137
+    },
+    {
+      "name": "nut",
+      "valid": true,
+      "volume_mm3": 5903.68091462594
+    },
+    {
+      "name": "end_cap",
+      "valid": true,
+      "volume_mm3": 960.0
+    },
+    {
+      "name": "bolt",
+      "valid": true,
+      "volume_mm3": 442.3505607878401
+    },
+    {
+      "name": "washer",
+      "valid": true,
+      "volume_mm3": 66.76512707409026
+    },
+    {
+      "name": "foot",
+      "valid": true,
+      "volume_mm3": 4202.1943334417065
+    },
+    {
+      "name": "datum_strip",
+      "valid": true,
+      "volume_mm3": 1230.0
+    }
+  ],
+  "component_groups": {
+    "base": 1,
+    "washer": 86,
+    "bolt": 86,
+    "foot": 4,
+    "x_rail": 2,
+    "carriage": 8,
+    "carriage_cap": 8,
+    "middle_plate": 1,
+    "y_rail": 2,
+    "top_plate": 1,
+    "screw_x": 1,
+    "nut": 2,
+    "bearing_foot": 4,
+    "bearing": 4,
+    "coupling": 2,
+    "motor": 2,
+    "motor_flange": 4,
+    "motor_hub": 2,
+    "screw_y": 1,
+    "datum_strip": 1,
+    "end_cap": 4
+  },
+  "step_sha256": "f0b7caad86fc7d9c1342d838c3d4a10ec7479e11cf5751ee004fdb2ec8dc5036",
+  "step_bytes": 1739026,
+  "preview_backend": "SolidWorks",
+  "solidworks_revision": "33.2.0",
+  "imported_components": 226,
+  "appearance_readback_verified": true,
+  "image": "docs/images/modelops-hero.png",
+  "image_pixels": [
+    2560,
+    1440
+  ],
+  "image_sha256": "bfcddaa46853d0f09485340ef7f31cfcdaee18092a875889fef198d41e549cd8",
+  "preview_checks": {
+    "model_available": true,
+    "previews_created": true,
+    "previews_not_blank": true,
+    "expected_outputs_exist": true,
+    "feature_summary_available": true,
+    "geometry_measurements_available": false,
+    "geometry_measurements_error_free": false
+  },
+  "original_active_document_unchanged": true,
+  "working_directory_restored": true,
+  "limitations": [
+    "Generic component envelopes, not supplier models",
+    "No load/motion/fit validation",
+    "Separate from the basic-part ModelOps v0.1 benchmark",
+    "No parametric SolidWorks feature history or assembly mates",
+    "Assembly-wide measurements unavailable through part-oriented review helper"
+  ],
+  "hero_not_blank": true,
+  "original_active_identity_restored": true,
+  "expected_failure_check": {
+    "trigger": "Expected component count changed from 226 to 225",
+    "status": "failed",
+    "imported_components": 226,
+    "error": "Imported component count does not match the generated assembly",
+    "original_active_identity_restored": true,
+    "original_active_document_unchanged": true,
+    "working_directory_restored": true
+  }
+}

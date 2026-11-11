@@ -12,7 +12,7 @@
   "capabilities": [
     {
       "id": "modelops_create_edit_checkpoints",
-      "label": "统一建模、命名线性尺寸修改、检查点和恢复",
+      "label": "Unified modeling, named linear dimension edits, checkpoints, and recovery",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -26,10 +26,10 @@
         "comtypes"
       ],
       "limitations": [
-        "新建仅矩形/圆草图、拉伸和切除；专项封装不自动进入统一事务白名单",
-        "修改/恢复仅无外部依赖的单配置SLDPRT，正线性驱动尺寸；源文件使用磁盘快照",
-        "恢复成功不等于原任务成功；仍需工程和视觉复核",
-        "2025 SP2.0仅实测四孔板创建/改厚/失败恢复/独立进程恢复；仍保持pilot，不外推到任意零件"
+        "Creation supports only rectangle/circle sketches, extrusions, and cuts; specialist wrappers are not automatically included in the unified transaction allowlist",
+        "Editing/recovery supports only single-configuration SLDPRT files without external dependencies and positive linear driving dimensions; source input is a disk snapshot",
+        "Successful recovery does not mean the original task succeeded; engineering and visual review remain required",
+        "Native tests on 2025 SP2.0 cover only four-hole plate creation, thickness editing, failed-edit recovery, and independent-process recovery; the level remains pilot and does not extend to arbitrary parts"
       ],
       "allowed_modes": [
         "interactive",
@@ -39,7 +39,7 @@
     },
     {
       "id": "sketch_definition_and_native_counterbores",
-      "label": "草图完全定义与原生孔向导沉孔",
+      "label": "Fully defined sketches and native Hole Wizard counterbores",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -54,9 +54,9 @@
         "Hole Wizard ISO database"
       ],
       "limitations": [
-        "草图以驱动尺寸和几何关系定义，仍需核对自动约束未改变设计尺寸",
-        "原生沉孔仅覆盖ISO/M8、同一平面上的单点或多点二维定位、贯穿条件及自定义通径/沉径/深度",
-        "孔向导自动轮廓的内部锚点须与父特征和驱动参数交叉验证；其他孔向导类型未实机通过"
+        "Sketches use driving dimensions and geometric relations; verify that automatic constraints did not change design dimensions",
+        "Native counterbores cover only ISO/M8, single or multiple 2D positions on one plane, through-all termination, and custom hole diameter, counterbore diameter, and depth",
+        "Internal anchors in generated Hole Wizard profiles require cross-checks against the parent feature and driving parameters; other Hole Wizard types have not passed native tests"
       ],
       "allowed_modes": [
         "interactive",
@@ -65,7 +65,7 @@
     },
     {
       "id": "native_rib_with_feedback",
-      "label": "原生筋与参数、草图及几何反馈验收",
+      "label": "Native ribs with parameter, sketch, and geometry acceptance checks",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -79,9 +79,9 @@
         "comtypes"
       ],
       "limitations": [
-        "SW2025 SP2.0 的两个独立新零件已验证二维开放单直线、双侧对称、平行草图、无拔模的原生 Rib；不外推到曲线筋、多轮廓、单侧、垂直草图、拔模或其他版本",
-        "必须回读新增 Rib 特征与厚度、双侧、方向、拔模状态，并检查草图驱动约束、实体数、特征错误码和体积增量；本样件三角筋体积为8000 mm³，其他设计另算",
-        "专项入口不扩展基础 JSON 建模动作白名单；源模型只读，创建失败后的残留特征不得静默重试或伪报成功"
+        "Two independent new parts on SW2025 SP2.0 verified a native Rib from a 2D open single-line sketch, two-sided symmetric thickness, parallel-to-sketch extrusion, and no draft; this does not cover curved ribs, multiple profiles, one-sided ribs, normal-to-sketch extrusion, draft, or other versions",
+        "Read back the new Rib feature, thickness, two-sided setting, direction, and draft state; check sketch driving constraints, body count, feature error codes, and added volume. The sample triangular rib adds 8000 mm³; calculate other designs separately",
+        "The specialist entry does not extend the basic JSON modeling operation allowlist; the source model stays read-only, and residual features after a failed creation must not trigger silent retries or false success claims"
       ],
       "allowed_modes": [
         "interactive",
@@ -90,7 +90,7 @@
     },
     {
       "id": "contextual_closed_loop",
-      "label": "模型上下文与基础零件执行反馈闭环",
+      "label": "Model context and feedback loop for basic part execution",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -104,10 +104,10 @@
         "comtypes"
       ],
       "limitations": [
-        "仅在新建零件执行矩形/圆草图、拉伸和切除；原模型只读",
-        "真实上下文标量绑定、逐步体积/孔位/包围盒检查；每轮最多一次显式切除方向重试",
-        "完整CNC模板的圆倒角、口袋及原地改模不在该入口白名单；沿用原专项流程",
-        "包围盒近似、装配体不自动解析；不替代工程复核"
+        "Runs rectangle/circle sketches, extrusions, and cuts only in new parts; the source model stays read-only",
+        "Binds actual context scalars and checks volume, hole positions, and bounds after each step; allows at most one explicitly declared cut-direction retry per run",
+        "Fillets/chamfers, pockets, and in-place edits from the full CNC template are outside this entry point allowlist; use the existing specialist workflows",
+        "Bounding boxes are approximate and assemblies are not automatically resolved; engineering review remains required"
       ],
       "allowed_modes": [
         "interactive",
@@ -116,7 +116,7 @@
     },
     {
       "id": "requirements_planning",
-      "label": "需求分析与工程规划",
+      "label": "Requirements analysis and engineering planning",
       "level": "verified",
       "backends": [
         "local-agent"
@@ -126,7 +126,7 @@
         "python"
       ],
       "limitations": [
-        "关键尺寸、公差、载荷和安全参数仍需人工确认"
+        "Critical dimensions, tolerances, loads, and safety parameters still require human confirmation"
       ],
       "allowed_modes": [
         "interactive",
@@ -135,7 +135,7 @@
     },
     {
       "id": "part_and_features",
-      "label": "参数化零件与基础特征",
+      "label": "Parametric parts and basic features",
       "level": "verified",
       "backends": [
         "solidworks-com"
@@ -150,7 +150,7 @@
         "comtypes"
       ],
       "limitations": [
-        "复杂曲面、模具和高级拓扑引用不属于无人值守能力"
+        "Complex surfaces, molds, and advanced topology references are outside unattended capability"
       ],
       "allowed_modes": [
         "interactive",
@@ -159,7 +159,7 @@
     },
     {
       "id": "holes_and_finishing",
-      "label": "孔槽、螺纹、圆角与倒角",
+      "label": "Holes, slots, threads, fillets, and chamfers",
       "level": "verified",
       "backends": [
         "solidworks-com"
@@ -173,7 +173,7 @@
         "comtypes"
       ],
       "limitations": [
-        "每个孔槽必须有规格、数量和定位证据"
+        "Every hole and slot requires evidence of specification, quantity, and position"
       ],
       "allowed_modes": [
         "interactive",
@@ -182,7 +182,7 @@
     },
     {
       "id": "parameter_updates",
-      "label": "命名尺寸参数修改",
+      "label": "Named dimension parameter editing",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -196,7 +196,7 @@
         "pywin32"
       ],
       "limitations": [
-        "必须提供准确尺寸名；配置族批量修改仍需人工复核"
+        "Exact dimension names are required; batch editing of configuration families still requires manual review"
       ],
       "allowed_modes": [
         "interactive",
@@ -205,7 +205,7 @@
     },
     {
       "id": "custom_properties_and_bom",
-      "label": "自定义属性与装配 BOM CSV",
+      "label": "Custom properties and assembly BOM CSV",
       "level": "pilot",
       "backends": [
         "solidworks-com",
@@ -220,7 +220,7 @@
         "pywin32"
       ],
       "limitations": [
-        "CSV 必须与 SolidWorks 原生 BOM、配置和工程图人工核对"
+        "Manually cross-check the CSV against the native SolidWorks BOM, configurations, and drawings"
       ],
       "allowed_modes": [
         "interactive",
@@ -229,7 +229,7 @@
     },
     {
       "id": "pack_and_go",
-      "label": "SolidWorks 原生 Pack and Go",
+      "label": "Native SolidWorks Pack and Go",
       "level": "pilot",
       "backends": [
         "solidworks-com",
@@ -246,7 +246,7 @@
         "comtypes"
       ],
       "limitations": [
-        "SW2026 SP01.1 的基础两零件装配已连续三次通过原生 Pack and Go 回归；其他版本或复杂引用若实际落盘缺少依赖，默认生成基于 GetDependencies2 的 pilot 暂存包，严格原生调用可设置 fallback_policy=blocked；外部引用、Toolbox、配置和工程图必须人工抽查"
+        "A basic two-part assembly passed native Pack and Go regression three consecutive times on SW2026 SP01.1. For other versions or complex references with missing output dependencies, the default creates a GetDependencies2-based pilot staging package; strict native calls can set fallback_policy=blocked. External references, Toolbox, configurations, and drawings require manual spot checks"
       ],
       "allowed_modes": [
         "interactive",
@@ -255,7 +255,7 @@
     },
     {
       "id": "assembly_and_mates",
-      "label": "装配体与配合",
+      "label": "Assemblies and mates",
       "level": "verified",
       "backends": [
         "solidworks-com"
@@ -269,7 +269,7 @@
         "comtypes"
       ],
       "limitations": [
-        "必须回读配合特征和自由度；不等于完整干涉或受力分析"
+        "Read back mate features and degrees of freedom; this does not constitute complete interference or load analysis"
       ],
       "allowed_modes": [
         "interactive",
@@ -278,7 +278,7 @@
     },
     {
       "id": "motion_study",
-      "label": "旋转马达 Motion Study",
+      "label": "Rotary motor Motion Study",
       "level": "pilot",
       "backends": [
         "solidworks-com"
@@ -287,10 +287,10 @@
         "2024"
       ],
       "dependencies": [
-        "SolidWorks Motion Study 加载项"
+        "SolidWorks Motion Study add-in"
       ],
       "limitations": [
-        "当前只验证旋转马达和结果审计，不承诺接触、阻尼、受力和完整 FEA"
+        "Only rotary motors and result auditing are currently verified; contact, damping, loads, and complete FEA are not promised"
       ],
       "allowed_modes": [
         "reviewed"
@@ -298,7 +298,7 @@
     },
     {
       "id": "drawing_dimension_insertion",
-      "label": "SolidWorks 工程图模型尺寸自动插入",
+      "label": "Automatic insertion of model dimensions into SolidWorks drawings",
       "level": "verified",
       "backends": [
         "solidworks-com"
@@ -312,7 +312,7 @@
         "pywin32"
       ],
       "limitations": [
-        "仅导入模型中已存在且标记为工程图的 DisplayDimension；模型缺少尺寸时先自动标注草图或补齐参数尺寸；仍需人工检查位置、重叠和尺寸链完整性"
+        "Imports only existing DisplayDimensions marked for drawings. If model dimensions are missing, dimension sketches or add parameter dimensions first; manually check placement, overlaps, and dimension-chain completeness"
       ],
       "allowed_modes": [
         "interactive",
@@ -321,7 +321,7 @@
     },
     {
       "id": "drawings_and_bom",
-      "label": "工程图、尺寸链与 BOM",
+      "label": "Drawings, dimension chains, and BOM",
       "level": "pilot",
       "backends": [
         "solidworks-com",
@@ -332,11 +332,11 @@
         "2026"
       ],
       "dependencies": [
-        "SolidWorks 或 AutoCAD"
+        "SolidWorks or AutoCAD"
       ],
       "limitations": [
-        "SW2026 已验证三视图、6 个真实尺寸实体、PDF 和非空 BMP；IAnnotation 不提供尺寸文字原生包围盒，只能用锚点/字体保守估算并人工目视复核",
-        "图框、标题栏、尺寸链、孔表和 GB/T 风格必须人工目视复核"
+        "SW2026 verified three orthographic views, 6 actual dimension entities, PDF, and nonblank BMP output. IAnnotation does not expose a native dimension-text bounding box; placement uses conservative anchor/font estimates and requires visual review",
+        "Drawing borders, title blocks, dimension chains, hole tables, and GB/T styling require manual visual review"
       ],
       "allowed_modes": [
         "interactive",
@@ -345,7 +345,7 @@
     },
     {
       "id": "export_delivery",
-      "label": "文件导出与交付包",
+      "label": "File export and delivery packages",
       "level": "verified",
       "backends": [
         "solidworks-com",
@@ -358,10 +358,10 @@
         "2026"
       ],
       "dependencies": [
-        "目标 CAD 软件或对应无头转换器"
+        "Target CAD software or corresponding headless converter"
       ],
       "limitations": [
-        "专有格式仍需目标 CAD 原生打开复核"
+        "Reopen proprietary formats in their native CAD application for review"
       ],
       "allowed_modes": [
         "interactive",
@@ -370,7 +370,7 @@
     },
     {
       "id": "headless_open_format_writing",
-      "label": "无 CAD 开放格式写入",
+      "label": "Open-format writing without installed CAD software",
       "level": "pilot",
       "backends": [
         "headless-occt",
@@ -388,9 +388,9 @@
         "ezdxf"
       ],
       "limitations": [
-        "当前真实写入 .cadstudio.json、STEP、IGES、BREP、STL、OBJ、GLB、DXF、SVG、PDF、PNG，并生成几何与 SHA-256 证据",
-        "OCCT 当前覆盖盒体、圆柱、布尔合并、圆柱孔切除和独立入口的受限封闭直纹 Loft；其余复杂特征仍返回 blocked",
-        "不会伪造 SLDPRT、SLDASM、SLDDRW 或 DWG；FEA、安全认证和制造性结论不由几何写入器提供"
+        "Currently writes actual .cadstudio.json, STEP, IGES, BREP, STL, OBJ, GLB, DXF, SVG, PDF, and PNG artifacts with geometry and SHA-256 evidence",
+        "OCCT currently covers boxes, cylinders, Boolean unions, cylindrical hole cuts, and a restricted closed ruled Loft through a separate entry point; other complex features remain blocked",
+        "Does not fabricate SLDPRT, SLDASM, SLDDRW, or DWG files; the geometry writer does not provide FEA, safety certification, or manufacturability conclusions"
       ],
       "allowed_modes": [
         "interactive",
@@ -399,7 +399,7 @@
     },
     {
       "id": "geometry_and_delivery_review",
-      "label": "几何、文件与交付复核",
+      "label": "Geometry, file, and delivery review",
       "level": "verified",
       "backends": [
         "local-python"
@@ -409,7 +409,7 @@
         "python"
       ],
       "limitations": [
-        "文件级检查不能替代工程师对关键尺寸和制造性的判断"
+        "File-level checks do not replace an engineer's judgment of critical dimensions and manufacturability"
       ],
       "allowed_modes": [
         "interactive",
@@ -418,7 +418,7 @@
     },
     {
       "id": "dfm_checks",
-      "label": "机加工、钣金、激光切割与 3D 打印 DFM 复核",
+      "label": "DFM review for machining, sheet metal, laser cutting, and 3D printing",
       "level": "pilot",
       "backends": [
         "local-python"
@@ -428,9 +428,9 @@
         "python"
       ],
       "limitations": [
-        "支持供应商 DFM Profile 能力交集、单位归一和 SolidWorks/OCCT B-Rep 证据绑定；缺失或伪造关键证据会返回 blocked",
-        "机器规则全部通过仍必须人工确认材料、公差、载荷、装配、刀具/模具、打印方向和供应商能力",
-        "DFM 报告是风险复核，不是制造认证；缺少材料、壁厚、K 因子、割缝或成型空间等关键输入时返回 blocked"
+        "Supports supplier DFM Profile capability intersections, unit normalization, and binding to SolidWorks/OCCT B-Rep evidence; missing or fabricated critical evidence returns blocked",
+        "Even when all machine rules pass, humans must confirm materials, tolerances, loads, assembly, tools/molds, print orientation, and supplier capability",
+        "A DFM report is a risk review, not manufacturing certification; missing critical inputs such as material, wall thickness, K-factor, kerf, or forming space return blocked"
       ],
       "allowed_modes": [
         "interactive",
@@ -439,7 +439,7 @@
     },
     {
       "id": "autocad_basic_drafting",
-      "label": "AutoCAD 二维绘图与批量改图",
+      "label": "AutoCAD 2D drawing and batch editing",
       "level": "not_implemented",
       "backends": [
         "autocad-com"
@@ -450,8 +450,8 @@
         "pywin32"
       ],
       "limitations": [
-        "AutoCAD 2024 ActiveX 当前真机回归被阻塞：Documents、Layers、SelectionSets 代理不稳定；不得宣称原生 DWG 绘图已完成",
-        "可用范围仅限人工交互排障；DXF 无头预览和结构审查见 autocad_headless_preview"
+        "Native AutoCAD 2024 ActiveX regression is currently blocked by unstable Documents, Layers, and SelectionSets proxies; do not claim completed native DWG drawing",
+        "Usable scope is limited to interactive manual troubleshooting; see autocad_headless_preview for headless DXF preview and structural review"
       ],
       "allowed_modes": [
         "interactive"
@@ -459,7 +459,7 @@
     },
     {
       "id": "configurations_and_design_tables",
-      "label": "配置与设计表",
+      "label": "Configurations and design tables",
       "level": "reference_only",
       "backends": [
         "solidworks-com"
@@ -470,7 +470,7 @@
         "Excel"
       ],
       "limitations": [
-        "尚无连续真实回归样件，不允许无人值守交付"
+        "No consecutive native regression fixtures are available; unattended delivery is not allowed"
       ],
       "allowed_modes": [
         "interactive"
@@ -478,7 +478,7 @@
     },
     {
       "id": "sheet_metal",
-      "label": "钣金建模与展开",
+      "label": "Sheet metal modeling and flat patterns",
       "level": "reference_only",
       "backends": [
         "solidworks-com"
@@ -488,7 +488,7 @@
         "SolidWorks"
       ],
       "limitations": [
-        "尚无稳定执行器和版本矩阵，不允许宣称已完成"
+        "No stable executor and version matrix are available; do not claim completion"
       ],
       "allowed_modes": [
         "interactive"
@@ -496,7 +496,7 @@
     },
     {
       "id": "weldments",
-      "label": "焊件与切割清单",
+      "label": "Weldments and cut lists",
       "level": "reference_only",
       "backends": [
         "solidworks-com"
@@ -506,7 +506,7 @@
         "SolidWorks"
       ],
       "limitations": [
-        "尚无稳定执行器和真实回归样件"
+        "No stable executor or native regression fixtures are available"
       ],
       "allowed_modes": [
         "interactive"
@@ -514,7 +514,7 @@
     },
     {
       "id": "surface_modeling",
-      "label": "复杂曲面与连续性检查",
+      "label": "Complex surfaces and continuity checks",
       "level": "pilot",
       "backends": [
         "local-python",
@@ -524,12 +524,12 @@
       "verified_versions": [],
       "dependencies": [
         "python",
-        "可选 OCP",
-        "可选 SolidWorks"
+        "Optional OCP",
+        "Optional SolidWorks"
       ],
       "limitations": [
-        "headless-occt 已真实生成并重开受限封闭直纹/平滑 Loft、直线/单圆弧 Sweep、闭壳 Knit 和开放面 Thicken；操作均要求版本化 B-Rep 证据",
-        "G1/G2 只对拓扑共享边五点采样，平滑变截面可能因包络鼓包被阻断；Thicken 使用局部曲率九点采样和 50% 半径保守门禁，仍不证明全局无自交、Class-A、模具质量或可制造性"
+        "headless-occt has generated and reopened restricted closed ruled/smooth Lofts, straight/single-arc Sweeps, closed-shell Knit, and open-surface Thicken; all operations require versioned B-Rep evidence",
+        "G1/G2 checks sample only five points on topologically shared edges. Smooth variable-section lofts may be blocked by envelope bulging. Thicken uses nine local-curvature samples and a conservative 50% radius gate; these do not prove global freedom from self-intersections, Class-A quality, mold quality, or manufacturability"
       ],
       "allowed_modes": [
         "interactive",
@@ -538,7 +538,7 @@
     },
     {
       "id": "mold_tools",
-      "label": "模具工具与分型检查",
+      "label": "Mold tools and parting checks",
       "level": "pilot",
       "backends": [
         "local-python",
@@ -548,11 +548,11 @@
       "verified_versions": [],
       "dependencies": [
         "python",
-        "可选 OCP",
-        "可选 SolidWorks 模具工具与许可证"
+        "Optional OCP",
+        "Optional SolidWorks Mold Tools and license"
       ],
       "limitations": [
-        "当前只校验拔模方向、分型边/面、型芯型腔引用和收缩率计划；不生成型芯型腔实体，不替代模具设计"
+        "Currently validates only draft direction, parting edges/faces, core/cavity references, and shrinkage plans; it does not generate core/cavity solids or replace mold design"
       ],
       "allowed_modes": [
         "interactive",
@@ -561,7 +561,7 @@
     },
     {
       "id": "simulation_and_fea",
-      "label": "仿真与 FEA",
+      "label": "Simulation and FEA",
       "level": "pilot",
       "backends": [
         "local-python",
@@ -574,14 +574,14 @@
       ],
       "dependencies": [
         "python",
-        "可选 CalculiX ccx",
-        "可选 ElmerSolver",
-        "可选 SolidWorks Simulation 许可证"
+        "Optional CalculiX ccx",
+        "Optional ElmerSolver",
+        "Optional SolidWorks Simulation license"
       ],
       "limitations": [
-        "已真实运行 C3D4/C3D8 线性静力、NLGEOM 几何非线性、受限塑性曲线和双实体面接触样件；可解析最终步 COPEN/CPRESS/CSLIP 并保留 .cel 接触迭代证据，求解结果仍统一为 review_required",
-        "网格收敛序列支持线性/非线性静力，比较末两档位移、应力及存在时的塑性应变、接触穿透和接触压力；本机线性五档悬臂梁通过 8% 阈值，未达标时仍返回 fea_mesh_convergence_not_reached",
-        "尚未覆盖大型装配接触、全过程穿透允许值自动认证、屈曲、模态、热耦合和工程认证；FEA 结果不等于安全认证"
+        "Actual sample runs cover C3D4/C3D8 linear statics, NLGEOM geometric nonlinearity, restricted plasticity curves, and two-body surface contact. Final-step COPEN/CPRESS/CSLIP can be parsed and .cel contact iteration evidence retained; all solver results remain review_required",
+        "Mesh convergence sequences support linear/nonlinear statics and compare displacement, stress, and, when present, plastic strain, contact penetration, and contact pressure between the last two levels. A local five-level linear cantilever passed the 8% threshold; unmet thresholds still return fea_mesh_convergence_not_reached",
+        "Large-assembly contact, automatic certification of allowable penetration throughout a run, buckling, modal analysis, thermal coupling, and engineering certification are not covered; FEA results do not constitute safety certification"
       ],
       "allowed_modes": [
         "interactive",
@@ -590,17 +590,17 @@
     },
     {
       "id": "autocad_headless_preview",
-      "label": "AutoCAD 无头 DXF 预览与检查",
+      "label": "Headless AutoCAD DXF preview and checks",
       "level": "pilot",
       "backends": [
         "ezdxf"
       ],
       "verified_versions": [],
       "dependencies": [
-        "可选 ezdxf"
+        "Optional ezdxf"
       ],
       "limitations": [
-        "只读 DXF；可生成受实体和文件大小限制的 PreviewScene JSON 与 PNG；不能读取或写入 DWG，不能替代 AutoCAD 原生 DWG/PDF 复核"
+        "Reads DXF only; generates PreviewScene JSON and PNG subject to entity-count and file-size limits. It cannot read or write DWG or replace native AutoCAD DWG/PDF review"
       ],
       "allowed_modes": [
         "interactive",
@@ -609,7 +609,7 @@
     },
     {
       "id": "dxf_preview_scene",
-      "label": "DXF 安全 PreviewScene 转换",
+      "label": "Restricted DXF-to-PreviewScene conversion",
       "level": "pilot",
       "backends": [
         "ezdxf",
@@ -621,7 +621,7 @@
         "ezdxf"
       ],
       "limitations": [
-        "只读白名单实体；输入上限 50 MB/200000 实体；不支持实体只记录 warnings；输出不得覆盖旧场景文件"
+        "Reads allowlisted entities only; input limit is 50 MB/200000 entities. Unsupported entities produce warnings only; output must not overwrite an existing scene file"
       ],
       "allowed_modes": [
         "interactive",
@@ -630,7 +630,7 @@
     },
     {
       "id": "autocad_script_backend",
-      "label": "AutoCAD SCR/AutoLISP 白名单命令桥",
+      "label": "AutoCAD SCR/AutoLISP allowlisted command bridge",
       "level": "pilot",
       "backends": [
         "autocad-script"
@@ -642,7 +642,7 @@
         "AutoCAD"
       ],
       "limitations": [
-        "命令执行可能异步；只允许白名单脚本，保存后必须复核 DWG/DXF/PDF 产物"
+        "Command execution may be asynchronous; only allowlisted scripts are permitted, and DWG/DXF/PDF outputs require review after saving"
       ],
       "allowed_modes": [
         "interactive",
@@ -651,7 +651,7 @@
     },
     {
       "id": "autocad_dotnet_backend",
-      "label": "AutoCAD .NET Managed API 桥接",
+      "label": "AutoCAD .NET Managed API bridge",
       "level": "pilot",
       "backends": [
         "autocad-dotnet"
@@ -661,13 +661,13 @@
       ],
       "dependencies": [
         ".NET SDK 8",
-        ".NET Framework 4.8 引用程序集",
+        ".NET Framework 4.8 reference assemblies",
         "AutoCAD 2024 Managed API DLL"
       ],
       "limitations": [
-        "AutoCAD 2024 已连续通过白名单命令、真实 DWG 保存重开、PDF/PNG 和实体/图层/尺寸回归，但仍需持续回归和人工复核，暂不允许无人值守交付",
-        "运行时逐次复验证据并在损坏时降级；不暴露任意 AutoLISP、SCR 或 .NET 代码执行",
-        "桌面部署仍需受信任路径或签名插件包；AutoCAD 2025–2026 尚未完成该 .NET 插件真机回归"
+        "AutoCAD 2024 passed consecutive regression runs for allowlisted commands, actual DWG save/reopen, PDF/PNG, and entities/layers/dimensions. Continued regression and manual review remain required; unattended delivery is not yet allowed",
+        "Runtime evidence is revalidated on each use and the capability is downgraded if evidence is damaged; arbitrary AutoLISP, SCR, and .NET code execution are not exposed",
+        "Desktop deployment still requires a trusted path or signed plugin package; native regression of this .NET plugin on AutoCAD 2025–2026 is not complete"
       ],
       "allowed_modes": [
         "interactive",
@@ -685,11 +685,11 @@
       "verified_versions": [],
       "dependencies": [
         "python",
-        "可选 SolidWorks Routing 类型库和加载项许可证"
+        "Optional SolidWorks Routing type library and add-in license"
       ],
       "limitations": [
-        "当前支持中性 Routing 端点、分段、长度、弯曲半径、碰撞/间隙、支撑间距和 BOM 复核；不生成 SOLIDWORKS Routing 原生特征",
-        "本机 SW2026 可发现 SWRoutingLib.tlb 和核心接口，但未检测到 Routing AddIn 注册或许可证证据时原生写入必须 blocked"
+        "Currently supports neutral Routing reviews of endpoints, segments, length, bend radius, collisions/clearances, support spacing, and BOM; it does not generate native SOLIDWORKS Routing features",
+        "The local SW2026 installation exposes SWRoutingLib.tlb and core interfaces, but native writing must remain blocked when Routing AddIn registration or license evidence is absent"
       ],
       "allowed_modes": [
         "interactive",

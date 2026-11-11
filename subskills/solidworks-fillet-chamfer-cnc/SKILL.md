@@ -1,24 +1,24 @@
 ---
 name: solidworks-fillet-chamfer-cnc
-description: SolidWorks 多圆角/倒角 CNC 零件自动化子技能。用于创建或修改圆角、倒角很多的机加工件、铝合金安装座、连接块、外壳、支架、沉孔安装板等模型；当任务涉及 FeatureFillet、InsertFeatureChamfer、稳定选边、孔口倒角、圆角矩形外轮廓、CNC 减重口袋、STEP 导出和预览审查时使用。
+description: SolidWorks automation subskill for CNC parts with many fillets and chamfers. Use to create or modify machined mounts, connector blocks, enclosures, brackets, and counterbored plates, including FeatureFillet, InsertFeatureChamfer, reliable edge selection, hole-mouth chamfers, rounded rectangular outlines, lightening pockets, STEP export, and preview review.
 ---
 
 # SolidWorks Fillet Chamfer CNC
 
-## 核心判断
+## Key considerations
 
-圆角/倒角多的 SolidWorks 自动化模型，难点不是 API 参数，而是稳定拓扑、稳定选边和特征顺序。默认策略是：
+Reliable topology, edge selection, and feature order are the main challenges when automating parts with many fillets and chamfers. Use this default strategy:
 
-1. 先运行父技能自检：`python ../../scripts/sw_preflight.py`。
-2. 先做简单可靠的基础体：矩形/圆柱/凸台/孔槽，避免一开始就画复杂圆角草图。
-3. 大圆角、外轮廓倒角尽量放在孔槽切除之前。
-4. 孔、沉孔、定位孔、长槽、减重口袋放在主体边处理之后。
-5. 孔口小倒角放最后；容易重算卡住的小圆角可降级或跳过，并在参数报告里写明。
-6. 生成后必须保存、导出 STEP、运行 `sw_review.run_review()`，并查看等轴测预览。
+1. Run the parent skill's preflight: `python ../../scripts/sw_preflight.py`.
+2. Start with simple, reliable base geometry: rectangles, cylinders, bosses, holes, and slots. Avoid a complex filleted sketch at the outset.
+3. Place large fillets and outer-edge chamfers before hole and slot cuts where possible.
+4. Add holes, counterbores, locating holes, long slots, and lightening pockets after finishing the main body's edges.
+5. Add small hole-mouth chamfers last. Small fillets that stall rebuilding may be reduced or omitted, with the change recorded in the parameter report.
+6. Save the result, export STEP, run `sw_review.run_review()`, and inspect the isometric preview.
 
-## 推荐调用
+## Recommended imports
 
-优先复用父技能脚本：
+Reuse the parent skill's scripts:
 
 ```python
 import sys
@@ -31,60 +31,60 @@ from sw_review import run_review
 from sw_appearance import set_document_appearance
 ```
 
-需要模板时，从本子技能复制或参考：
+For a template, copy or consult:
 
 ```text
 subskills/solidworks-fillet-chamfer-cnc/scripts/create_cnc_mount_template.py
 ```
 
-详细经验和避坑规则见：
+For detailed lessons and known pitfalls, read:
 
 ```text
 subskills/solidworks-fillet-chamfer-cnc/references/cnc-fillet-chamfer-lessons.md
 ```
 
-## 稳定流程
+## Reliable workflow
 
-1. 使用唯一的新零件与输出文件名，避免 `SaveAs` 名称冲突；只关闭本任务自有的临时文档，不关闭用户原文档。
-2. 新建零件，创建底板、凸台和必要参考面。
-3. 枚举实体边线，用对象 `edge.Select2(append, 0)` 选择，不依赖 `Edge1` 名称或随机坐标点击。
-4. 先加外轮廓真实特征：
-   - 立角大圆角：`FeatureFillet(195, radius, ...)`
-   - 顶/底外边倒角：`InsertFeatureChamfer(4, 1, distance, pi/4, ...)`
-5. 再切孔槽：
-   - 贯穿安装孔
-   - 沉孔台阶
-   - 定位孔
-   - 中心长圆槽
-   - 减重口袋
-6. 最后只做轻量孔口倒角；复杂槽口/口袋底部小圆角先保守处理。
-7. 写参数 JSON，保存 SLDPRT，导出 STEP，运行审查。
+1. Use unique names for new parts and output files to avoid `SaveAs` collisions. Close only this task's temporary documents; leave the user's original documents open.
+2. Create a part, then the base plate, bosses, and required reference planes.
+3. Enumerate body edges and select the edge object with `edge.Select2(append, 0)`. Do not rely on `Edge1` names or arbitrary coordinate picks.
+4. Add native outer-profile features first:
+   - Large vertical-edge fillets: `FeatureFillet(195, radius, ...)`
+   - Top and bottom outer-edge chamfers: `InsertFeatureChamfer(4, 1, distance, pi/4, ...)`
+5. Cut holes and slots:
+   - Through mounting holes
+   - Counterbore steps
+   - Locating holes
+   - Central obround slot
+   - Lightening pockets
+6. Finish with lightweight hole-mouth chamfers. Treat small fillets at complex slot mouths or pocket floors conservatively.
+7. Write the parameter JSON, save SLDPRT, export STEP, and review the result.
 
-L 形结构需要加强筋时，使用父技能的 `scripts/sw_native_ribs.py`，先读
-[原生筋与验收](../../references/native-ribs.md)。已实机通过的开放单直线筋使用原生 Rib，
-创建后回读厚度、双侧/方向/拔模状态，并核对草图、实体合并和体积增量；原有圆倒角、孔槽与导出流程继续使用。
+For an L-shaped structure requiring a reinforcing rib, use the parent skill's `scripts/sw_native_ribs.py` after reading
+[Native ribs and acceptance checks](../../references/native-ribs.md). Use the native Rib feature for the live-tested open single-line case.
+Read back thickness, both-sides, direction, and draft settings after creation, and check sketch constraints, body merging, and added volume. Continue using the existing fillet, chamfer, hole, slot, and export workflows.
 
-## 少走弯路
+## Pitfalls
 
-- 不要把“圆角很多”理解为一开始画复杂圆角草图；草图闭合失败会导致拉伸返回 `None`。
-- 不要用 `SelectByID2("", "EDGE", x, y, z, ...)` 作为主方案；不同视图和拓扑下容易选错边。
-- 不要把全部孔槽切完再一次性大圆角；复杂拓扑会让 SolidWorks 求解非常慢甚至卡住。
-- 不要把外观成功当作几何成功；外观 API 可能让预览偏透明或颜色异常，几何仍需看审查预览。
-- 不要只报告保存成功；必须确认 `SLDPRT`、`STEP`、预览图和 review report 都存在且非空。
+- Many fillets do not require a complex initial sketch. An unclosed sketch can make extrusion return `None`.
+- Do not use `SelectByID2("", "EDGE", x, y, z, ...)` as the main selection strategy; views and topology changes can cause incorrect picks.
+- Avoid applying all large fillets after every hole and slot cut. Complex topology can make SolidWorks solve very slowly or stall.
+- Successful appearance changes do not prove correct geometry. Appearance APIs may produce unexpected transparency or colors; inspect the geometry in the review previews.
+- Saving alone is insufficient. Confirm that `SLDPRT`, `STEP`, previews, and the review report exist and are nonempty.
 
-## 验证要求
+## Validation requirements
 
-每次完成后输出：
+Each completed run must produce:
 
 - `*.SLDPRT`
 - `*.step`
 - `*_parameters.json`
 - `*_review_report.json`
-- `*_isometric.bmp` 或转换后的 PNG
+- `*_isometric.bmp` or a converted PNG
 
-审查时至少检查：
+Check at least:
 
-- `evaluation.status` 是否为 `pass` 或可解释的 `warn`
-- `expected_outputs_exist` 是否为 `True`
-- `previews_not_blank` 是否为 `True`
-- 特征树是否包含预期的 `Fillet` / `Chamfer` / `Cut` 特征
+- `evaluation.status` is `pass` or an explained `warn`.
+- `expected_outputs_exist` is `True`.
+- `previews_not_blank` is `True`.
+- The feature tree contains the expected `Fillet`, `Chamfer`, and `Cut` features.

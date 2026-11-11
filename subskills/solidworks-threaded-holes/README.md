@@ -1,28 +1,28 @@
 # SolidWorks Threaded Holes
 
-`solidworks-threaded-holes` 是 `solidworks-automation` 仓库里的螺纹孔专项子技能，用来稳定生成可审查的攻丝底孔、螺纹孔、孔口倒角、螺纹参数属性和 STEP 输出。
+`solidworks-threaded-holes` is the threaded-hole subskill from the `solidworks-automation` repository. It generates reviewable tap-drill holes, thread representations, mouth chamfers, thread metadata, and STEP output.
 
-## 适用场景
+## Use cases
 
-- M3/M4/M5/M6/M8/M10/M12 内螺纹孔。
-- 盲孔、通孔、攻牙孔、螺纹安装孔。
-- 需要 Hole Wizard、ThreadFeatureData、CosmeticThread 或可见 3D 螺旋线表达。
-- 需要输出 `SLDPRT + STEP + parameters_json + review_report_json + preview`。
+- M3/M4/M5/M6/M8/M10/M12 internal threaded holes.
+- Blind holes, through holes, tapped holes, and threaded mounting holes.
+- Hole Wizard, ThreadFeatureData, CosmeticThread, or visible 3D helix representations.
+- Delivery of `SLDPRT + STEP + parameters_json + review_report_json + preview`.
 
-## 核心原则
+## Core principles
 
-SolidWorks COM 创建真实 Thread 特征在不同版本和语言环境下不稳定，所以默认按稳定层级交付：
+Native Thread creation through SolidWorks COM can vary by version and interface language. Use layered delivery:
 
-1. 攻丝底孔真实几何必须正确。
-2. 孔口倒角必须正确。
-3. 尝试真实 Thread 特征。
-4. 失败时尝试 CosmeticThread。
-5. 仍不稳定时保留可见 3D 螺旋线和自定义属性作为语义兜底。
-6. 必须运行 `sw_review.run_review()`。
+1. Create correct tap-drill geometry.
+2. Create the correct mouth chamfer.
+3. Attempt a native Thread feature.
+4. If it fails, attempt CosmeticThread.
+5. If that remains unreliable, keep a visible 3D helix and custom properties to record the thread intent.
+6. Run `sw_review.run_review()`.
 
-## 快速命令
+## Quick command
 
-在仓库根目录执行：
+Run from the repository root:
 
 ```powershell
 py subskills\solidworks-threaded-holes\scripts\create_threaded_hole_template.py `
@@ -30,7 +30,7 @@ py subskills\solidworks-threaded-holes\scripts\create_threaded_hole_template.py 
   --output-dir C:\CADAutomationWorkbench\solidworks_threaded_hole_output
 ```
 
-## 目录
+## Layout
 
 ```text
 solidworks-threaded-holes/
@@ -44,8 +44,8 @@ solidworks-threaded-holes/
     └── create_threaded_hole_template.py
 ```
 
-## 关联能力
+## Related capabilities
 
-- 父技能：`solidworks-automation`
-- 上游规划：`solidworks-vibecad`
-- 若螺纹孔位于复杂 CNC 安装座中，配合 `solidworks-fillet-chamfer-cnc` 使用。
+- Parent skill: `solidworks-automation`
+- Upstream planning: `solidworks-vibecad`
+- For threaded holes in a complex CNC mount, also use `solidworks-fillet-chamfer-cnc`.

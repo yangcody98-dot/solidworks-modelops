@@ -1,47 +1,47 @@
-# 高还原网格参考模型导入
+# Importing high-fidelity mesh reference models
 
-当用户要求汽车、消费电子、人物雕塑等“原版外观”“1:1 复刻”“不像概念版”的模型时，先判断目标到底是工程可编辑实体，还是外观高还原参考。外观高还原通常应优先使用公开三维模型或多视图蓝图作为基准，不要从零手搓一堆低保真棱柱后再反复精修。
+When a user requests an original-product appearance, 1:1 replica, or a faithful model of a car, consumer device, or sculpture, first distinguish an editable engineering solid from a visual reference. For visual fidelity, prefer a public 3D model or multiple-view blueprint; do not repeatedly refine low-fidelity prisms built from scratch.
 
-## 适用场景
+## Appropriate uses
 
-- 用户明确要求外观像真实产品，例如“小米 SU7 原版”“按公开图 1:1 复刻”。
-- 目标是展示、比例核对、外观参考、后续逆向重建底稿。
-- 输入是 `.glb`、`.gltf`、`.obj`、`.stl`、`.fbx`、`.blend` 等网格或 DCC 模型。
+- The user explicitly wants a faithful real-product appearance, such as an original Xiaomi SU7 or a 1:1 reconstruction from published images.
+- Presentation, proportion checks, visual reference, or a basis for later reverse engineering.
+- Mesh or DCC inputs such as `.glb`, `.gltf`, `.obj`, `.stl`, `.fbx`, or `.blend`.
 
-不适合的场景：
+Not appropriate when:
 
-- 用户需要可参数编辑的机械特征、可出工程图制造的 Class-A 曲面或钣金结构。
-- 用户要求内部结构、装配约束、尺寸公差、工艺特征，这时应重新建模或分件逆向，不要把三角网格说成工程实体。
+- The user needs editable mechanical features, manufacturing drawings, Class-A surfaces, or sheet-metal construction.
+- Internal structure, assembly constraints, tolerances, or manufacturing features are required. Remodel or reverse-engineer separate parts; do not describe a triangle mesh as an engineering solid.
 
-## 路线选择
+## Choosing a route
 
-1. 先找可靠输入：用户提供的模型文件优先；其次使用公开可下载模型；最后才用正侧俯后蓝图重建轮廓。
-2. 记录来源和许可：公开模型也要记录 URL、作者、许可证、下载日期；非商用声明不等于可以忽略署名或相同许可条款。
-3. 保留原始文件：把原始 GLB/FBX/OBJ 和转换后的 OBJ/STL 放在同一工作目录，写 `manifest.json`。
-4. 统一尺度和坐标：先用工具检查包围盒，再按真实公称尺寸缩放；汽车常用 `X=宽`、`Y=高`、`Z=长`。
-5. 优先导入 OBJ：OBJ 更可能保留材质、透明玻璃、灯组和内饰；STL 稳定但通常丢材质。
-6. 导入 SolidWorks 后必须目视审查四视图。规则评分 pass 只能说明“不是空白/文件存在”，不能说明“像用户要的对象”。
+1. Obtain reliable input: prefer the user's model, then a public downloadable model, then front/side/top/rear blueprints for outline reconstruction.
+2. Record the URL, author, license, and download date. A noncommercial designation does not waive attribution or share-alike requirements.
+3. Preserve source GLB/FBX/OBJ files alongside converted OBJ/STL files and write a `manifest.json`.
+4. Normalize scale and axes: inspect bounds first, then scale to actual nominal dimensions. Common vehicle axes are `X=width`, `Y=height`, `Z=length`.
+5. Prefer OBJ: it is more likely to retain materials, transparent glass, lights, and interiors. STL is robust but generally loses materials.
+6. Visually inspect four views after SolidWorks import. A rule-based pass may establish file existence/nonblank previews, not resemblance to the requested object.
 
-## GLB/FBX/BLEND 转换建议
+## Converting GLB/FBX/BLEND
 
-SolidWorks 对 GLB/FBX/BLEND 支持不稳定，建议先转换：
+SolidWorks support for these formats is inconsistent; convert them first:
 
-- Blender 可用时：用 Blender 导入后导出 OBJ/STL，保留纹理目录。
-- Python 可用时：用 `trimesh` 读取 GLB，导出 OBJ/STL；若要保留材质，优先导出 OBJ。
-- 高面数模型不要直接转 STEP。网格转 STEP 会生成大量三角面 BREP，SolidWorks `LoadFile4` 容易卡死或 RPC 断开。
+- With Blender: import and export OBJ/STL, keeping the texture directory.
+- With Python: read GLB using `trimesh` and export OBJ/STL; prefer OBJ when preserving materials.
+- Do not directly convert high-polygon models to STEP. Thousands of triangular B-Rep faces can hang SolidWorks `LoadFile4` or disconnect RPC.
 
-### Python 可选依赖
+### Optional Python dependencies
 
-网格转换不是普通 SolidWorks 建模的核心依赖，但遇到 GLB/GLTF/OBJ/STL 检查、缩放、纹理导出时应提前检查：
+Mesh conversion is not required for ordinary SolidWorks modeling. Before inspecting, scaling, or exporting textures from GLB/GLTF/OBJ/STL, check:
 
-| 库 | 用途 |
+| Library | Purpose |
 |---|---|
-| `trimesh` | 读取 GLB/GLTF/OBJ/STL、计算包围盒、导出 OBJ/STL/PLY |
-| `pygltflib` | 更细粒度解析 GLTF/GLB 元数据和资源 |
-| `numpy` | 尺度变换、坐标轴处理 |
-| `Pillow` | 纹理图片读写和预览辅助 |
+| `trimesh` | Read GLB/GLTF/OBJ/STL, compute bounds, export OBJ/STL/PLY |
+| `pygltflib` | Inspect GLTF/GLB metadata and resources in detail |
+| `numpy` | Scale transforms and axis operations |
+| `Pillow` | Texture image I/O and preview support |
 
-检查命令：
+Check command:
 
 ```powershell
 python - <<'PY'
@@ -51,15 +51,15 @@ for name in ["trimesh", "pygltflib", "numpy", "PIL"]:
 PY
 ```
 
-缺失时提示用户安装：
+If missing, explain the dependency and ask the user to install it:
 
 ```powershell
 python -m pip install -r SKILL_DIR\requirements-mesh.txt
 ```
 
-如果只是打开已有 OBJ/STL 并导入 SolidWorks，不一定需要这些库；如果要从 GLB/FBX/BLEND 转换或按真实尺寸重缩放，通常需要。
+Opening an existing OBJ/STL for SolidWorks import may not require these libraries. Converting GLB/FBX/BLEND or rescaling to real dimensions usually does.
 
-示例尺度处理：
+Scale example:
 
 ```python
 import numpy as np
@@ -68,7 +68,7 @@ import trimesh
 scene = trimesh.load(r"E:\source\SU7.glb", force="scene")
 mesh = scene.dump(concatenate=True)
 
-# 源模型轴向：X=宽，Y=高，Z=长；目标尺寸单位 m。
+# Source axes: X=width, Y=height, Z=length; target dimensions are in meters.
 target_extents = np.array([1.963, 1.455, 4.997])
 scale = target_extents / scene.extents
 center_xz = np.array([
@@ -87,9 +87,9 @@ mesh.export(r"E:\work\reference_scaled_m.obj")
 mesh.export(r"E:\work\reference_scaled_m.stl")
 ```
 
-## SolidWorks 稳定导入写法
+## Stable SolidWorks import call
 
-优先使用：
+Prefer:
 
 ```powershell
 python scripts\sw_import_mesh_reference.py `
@@ -100,29 +100,29 @@ python scripts\sw_import_mesh_reference.py `
   --review-dir E:\work\review_obj
 ```
 
-关键细节：
+Important details:
 
-- OBJ/STL 不要用 `OpenDoc6()` 当普通零件打开；部分 SW2024 环境会返回 `errors=2097152`。
-- OBJ/STL 走 `LoadFile4()` 时第三个参数不要传 `None`，否则会触发 `类型不匹配`。
-- 稳定写法是 `LoadFile4(path, "r", create_empty_dispatch_variant(), errors)`。
-- STEP/STP/IGES/IGS 仍按 `sw_connect.open_document()` 的外来 CAD 路线：`GetImportFileData()` + `LoadFile4(..., "r", import_data, errors)`。
-- 高面数外观模型默认导入为 `graphics`；只有明确需要尝试实体修补时才用 `surface` 或 `solid`。
+- Do not open OBJ/STL as ordinary parts with `OpenDoc6()`; some SW2024 installations return `errors=2097152`.
+- Do not pass `None` as the third `LoadFile4()` argument for OBJ/STL; it can cause a type mismatch.
+- Use `LoadFile4(path, "r", create_empty_dispatch_variant(), errors)`.
+- STEP/STP/IGES/IGS still use the foreign-CAD path in `sw_connect.open_document()`: `GetImportFileData()` plus `LoadFile4(..., "r", import_data, errors)`.
+- Import high-polygon appearance models as `graphics` by default. Use `surface` or `solid` only when explicitly attempting solid repair.
 
-## 审查标准
+## Review criteria
 
-导入后至少检查：
+After import, check at least:
 
-1. 输出 `.SLDPRT` 存在且大小合理。
-2. `run_review()` 导出 `isometric/front/top/right` 四视图。
-3. 等轴测能看到主体外观，正/侧/俯视比例符合目标对象。
-4. 关键识别特征存在：例如汽车的车顶线、灯组、轮毂、侧窗、前后包围。
-5. 颜色和材质不是被选择高亮污染；截图前调用 `ClearSelection2(True)`。
-6. 给用户说明模型类型：网格参考模型不是官方参数曲面，后续若要制造级模型，需要基于它分件逆向重建。
+1. The output `.SLDPRT` exists and has a reasonable size.
+2. `run_review()` exports `isometric/front/top/right` views.
+3. The isometric view shows the main appearance, and front/side/top proportions match the target.
+4. Recognizable details exist: for a car, roofline, lights, wheels, side windows, and front/rear fascia.
+5. Selection highlighting does not contaminate colors/materials; call `ClearSelection2(True)` before screenshots.
+6. Explain that a mesh reference is not an official parametric surface model. Manufacturing-quality work requires subsequent part-by-part reverse engineering.
 
-## 本次 SU7 经验摘要
+## Historical SU7 lessons
 
-- 错误路线：用脚本手搓分层棱柱/胶囊车壳，然后不断补灯、轮毂、玻璃。用户要“原版 SU7”时，这种底稿再精修也会偏离目标。
-- 正确路线：找到公开 SU7 网格模型，保留来源和许可，转 OBJ/STL，按 `4997 × 1963 × 1455 mm` 缩放，再导入 SolidWorks。
-- 关键 API 坑：`OpenDoc6()` 打 OBJ/STL 失败并不代表文件坏；`LoadFile4()` 传 `None` 也会失败。必须传空 Dispatch 变体。
-- 材质经验：OBJ 比 STL 更可能保留玻璃、尾灯、内饰、轮毂材质；STL 适合作为无材质兜底。
-- 审查经验：自动评分 pass 不等于像 SU7。必须打开预览图肉眼看品牌特征、比例和是否有零件飞出。
+- Unsuccessful approach: manually script layered prisms/capsule shells and keep adding lights, wheels, and glass. Refining such a base still misses an original-SU7 brief.
+- Successful approach: find a public SU7 mesh, retain source/license information, convert to OBJ/STL, scale to `4997 × 1963 × 1455 mm`, then import into SolidWorks.
+- API pitfall: `OpenDoc6()` failing on OBJ/STL does not prove file corruption. `LoadFile4()` also fails with `None`; pass an empty Dispatch variant.
+- Material lesson: OBJ is more likely than STL to preserve glass, tail-light, interior, and wheel materials. Keep STL as a material-free fallback.
+- Review lesson: an automated pass does not establish SU7 fidelity. Inspect previews for identifying details, proportions, and displaced parts.

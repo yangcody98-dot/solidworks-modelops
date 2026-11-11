@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "name": "four_hole_plate_create_edit_recover",
-  "description": "同一四孔板的创建、厚度修改、错误验收后的恢复，以及独立进程检查点重开。所有CAD写入只针对本次新建文件。",
+  "description": "Create and edit the same four-hole plate, recover after a deliberately failed acceptance check, and reopen a checkpoint in an independent process. All CAD writes target files created by this run.",
   "fixture": {
     "width_mm": 100,
     "height_mm": 60,

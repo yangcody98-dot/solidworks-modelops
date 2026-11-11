@@ -1,34 +1,34 @@
 # SolidWorks MCP Server
 
-本目录提供一个本地 `stdio` MCP Server，同时暴露无 CAD 开放格式工具和 SolidWorks COM 白名单工具。MCP 与 CAD Studio、Skill、CLI 共用能力清单和数据协议。
+This directory provides a local `stdio` MCP server exposing headless open-format tools and allowlisted SolidWorks COM operations. MCP, CAD Studio, the skill, and the CLI share capability definitions and data protocols.
 
-SolidWorks 是 Windows 桌面 COM 应用，不适合远程多客户端并发；因此本 server 默认使用 `stdio`，并在内部用全局锁串行执行所有 SolidWorks 操作。
+SolidWorks is a Windows desktop COM application unsuited to concurrent remote clients. The server therefore defaults to `stdio` and serializes all SolidWorks actions with a global lock.
 
-## 环境要求
+## Requirements
 
 - Windows 10/11
-- 仅调用 `cadstudio_write_open_format` 时不需要安装 SolidWorks/AutoCAD
-- 调用 `solidworks_*` 原生工具时需要 SolidWorks 已安装并至少启动过一次，完成 COM 注册
+- Using only `cadstudio_write_open_format` does not require SolidWorks/AutoCAD.
+- Native `solidworks_*` tools require SolidWorks installed and launched at least once to complete COM registration.
 - Python 3.8+
-- Python 依赖：
+- Python dependencies:
 
 ```powershell
 pip install -r mcp-server\requirements.txt
 ```
 
-## 启动
+## Starting the server
 
-在仓库根目录运行：
+From the repository root:
 
 ```powershell
 python mcp-server\server.py
 ```
 
-该命令通常由 MCP 客户端作为子进程启动，不需要手动长期运行。
+An MCP client normally launches this command as a child process; there is no need to keep it running manually.
 
-## 多客户端自动注册
+## Automatic client registration
 
-本仓库提供多客户端注册器，会自动尝试把 `solidworks` MCP Server 注册到：
+The bundled registration tool attempts to register the `solidworks` server with:
 
 - Codex
 - Claude Code
@@ -36,44 +36,44 @@ python mcp-server\server.py
 - Cursor
 - Windsurf
 
-在仓库根目录运行：
+From the repository root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\mcp-server\register_all_ai_mcp.ps1 -InstallDependencies
 ```
 
-只注册指定客户端：
+Register selected clients only:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\mcp-server\register_all_ai_mcp.ps1 -InstallDependencies -Clients codex,claude-code,cursor
 ```
 
-Node.js 版本可直接用于 `npx` 安装器或 CI：
+The Node.js variant can be used directly by the `npx` installer or CI:
 
 ```powershell
 node .\mcp-server\register_all_ai_mcp.js --install-dependencies
 ```
 
-注册后可按客户端检查：
+After registration, check each client:
 
 ```powershell
 codex mcp list
 claude mcp list
 ```
 
-> 通过本仓库 `npx` 安装时会自动运行多客户端注册器。某些 AI 客户端的纯 skill 导入不会执行安装脚本，需要在本地运行上述注册命令。
+> The repository's `npx` installer runs the multiclient registration tool automatically. Importing a skill alone in some clients does not run installation scripts; execute the registration commands locally.
 
-## Codex 专用注册
+## Codex-only registration
 
-如果只想注册 Codex：
+To register only Codex:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\mcp-server\register_codex_mcp.ps1 -InstallDependencies
 ```
 
-## 手动配置
+## Manual configuration
 
-把路径替换为你的本地仓库路径：
+Replace paths with your local checkout:
 
 ```json
 {
@@ -88,58 +88,58 @@ powershell -ExecutionPolicy Bypass -File .\mcp-server\register_codex_mcp.ps1 -In
 }
 ```
 
-如果你的客户端支持命令行注册，也可以使用类似命令：
+If your client supports CLI registration, a corresponding command is:
 
 ```powershell
 codex mcp add solidworks -- python C:\path\to\solidworks-automation-skill\mcp-server\server.py
 claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automation-skill\mcp-server\server.py
 ```
 
-## 已暴露工具
+## Exposed tools
 
-| 工具 | 说明 | 是否修改 SolidWorks |
+| Tool | Purpose | Changes SolidWorks state? |
 |---|---|---|
-| `cadstudio_write_open_format` | 从本地 `.cadstudio.json` 白名单写出 STEP/IGES/BREP/STL/OBJ/GLB/DXF/SVG/PDF/PNG、Preview Manifest/Scene 和几何/哈希证据 | 否 |
-| `cadstudio_build_dxf_preview_scene` | 只读 DXF 白名单转换为不覆盖旧文件的 `.scene.json` | 否 |
-| `cadstudio_check_dfm` | 对 NeutralCadDocument 执行机加工、钣金、激光切割或 3D 打印 DFM 规则检查，支持 supplier profile 与 B-Rep 证据；缺关键输入返回 blocked，规则通过仍需人工复核 | 否 |
-| `cadstudio_check_routing` | 校验中性 Routing 端点、分段、长度、弯曲半径、碰撞/间隙、支撑和 Routing BOM | 否 |
-| `cadstudio_routing_preflight` | 探测 SOLIDWORKS Routing 类型库、加载项注册和许可证证据；缺证据返回 blocked | 否 |
-| `cadstudio_fea_preflight` | 探测 CalculiX/Elmer 求解器，不执行任意命令 | 否 |
-| `cadstudio_prepare_fea` | 从 FEA 1.0/1.1 请求生成版本化 CalculiX `.inp`，不运行任意脚本 | 否 |
-| `cadstudio_run_fea` | 运行白名单 CalculiX 线性或受限非线性静力任务并解析位移、应力和收敛证据 | 否 |
-| `cadstudio_run_fea_convergence` | 运行 3-8 档白名单网格并比较末两档位移/应力变化 | 否 |
-| `cadstudio_review_advanced_geometry` | 校验复杂曲面/模具中性计划并返回 pilot/blocked 门禁证据 | 否 |
-| `cadstudio_create_ocp_loft` | 从白名单封闭截面生成真实直纹 Loft STEP/BREP/STL，并重开验证 B-Rep | 否 |
-| `cadstudio_create_ocp_surface` | 从严格 JSON 生成平滑 Loft、直线/圆弧 Sweep、闭壳 Knit 或开放面 Thicken，并返回连续性采样证据 | 否 |
-| `solidworks_health_check` | 检查 Python 依赖、SolidWorks 检测、Motion 类型库和可选实时连接 | 否 |
-| `solidworks_connect` | 连接/启动 SolidWorks 并返回活动文档摘要 | 否 |
-| `solidworks_new_document` | 新建零件/装配体/工程图 | 是 |
-| `solidworks_create_basic_part` | 创建基础盒体/圆柱零件，可保存并设置文档颜色 | 是 |
-| `solidworks_open_document` | 打开已有 SolidWorks 文档 | 是 |
-| `solidworks_add_component` | 向活动装配体添加零件/子装配体，可选固定组件 | 是 |
-| `solidworks_set_component_fixed` | 按组件名关键字固定或浮动装配体组件 | 是 |
-| `solidworks_save_document` | 保存或另存为活动文档 | 是 |
-| `solidworks_close_documents` | 关闭活动文档或全部文档 | 是，可能丢弃未保存修改 |
-| `solidworks_add_coincident_mate` | 在两个组件的指定基准面/特征之间添加重合 Mate | 是 |
-| `solidworks_add_distance_mate` | 在两个组件的指定基准面/特征之间添加距离 Mate | 是 |
-| `solidworks_add_concentric_mate` | 按圆柱面半径范围添加同心 Mate，可选择是否锁转 | 是 |
-| `solidworks_set_appearance` | 设置活动文档或指定组件外观颜色 | 是 |
-| `solidworks_export_active` | 导出活动文档为 STEP/STL/IGES/Parasolid/PDF/DXF | 是，写输出文件 |
-| `solidworks_update_dimension` | 按准确尺寸名修改参数，返回修改前后、重建和保存证据 | 是 |
-| `solidworks_set_custom_properties` | 写入并回读文件级或配置级自定义属性 | 是 |
-| `solidworks_batch_export_files` | 多文件、多格式批量导出并核验本轮产物 | 是，写输出文件 |
-| `solidworks_export_assembly_bom` | 导出装配组件/属性 BOM CSV，强制人工复核 | 是，写输出文件 |
-| `solidworks_pack_and_go` | 使用原生 Pack and Go 打包文档与引用 | 是，写输出文件 |
-| `solidworks_review_active` | 导出多视角 BMP 预览和 JSON 审查报告 | 是，写输出文件 |
-| `solidworks_create_hole_feature` | 创建盲孔、通孔、沉孔、沉头孔或半圆端槽，并返回参数证据 | 是 |
-| `solidworks_inspect_hole_features` | 读取 B-Rep 孔段、复合孔、槽端圆弧并验证孔位 | 否 |
-| `solidworks_add_rotary_motor` | 在活动装配体中新建 Motion Study 并添加匀速旋转马达 | 是 |
-| `solidworks_inspect_motion_studies` | 读取算例、马达/外力数量和结果新鲜度 | 否 |
-| `solidworks_validate_motion_study` | 对时长、类型、马达数量、结果存在性和过期状态执行交付门禁 | 否 |
+| `cadstudio_write_open_format` | Write STEP/IGES/BREP/STL/OBJ/GLB/DXF/SVG/PDF/PNG, preview manifest/scene, and geometry/hash evidence from allowlisted local `.cadstudio.json` | No |
+| `cadstudio_build_dxf_preview_scene` | Convert allowlisted DXF entities read-only to `.scene.json` without overwriting an existing file | No |
+| `cadstudio_check_dfm` | Check machining, sheet metal, laser cutting, or 3D printing rules on NeutralCadDocument with supplier profiles and B-Rep evidence; missing inputs block, and passing rules still require human review | No |
+| `cadstudio_check_routing` | Check neutral Routing endpoints, segments, lengths, bend radii, collisions/clearances, supports, and BOM | No |
+| `cadstudio_routing_preflight` | Probe Routing type libraries, add-in registration, and license evidence; block if evidence is missing | No |
+| `cadstudio_fea_preflight` | Probe CalculiX/Elmer availability without running arbitrary commands | No |
+| `cadstudio_prepare_fea` | Generate versioned CalculiX `.inp` from FEA 1.0/1.1 requests without arbitrary scripts | No |
+| `cadstudio_run_fea` | Run allowlisted linear/restricted nonlinear static CalculiX jobs and parse displacement, stress, and convergence evidence | No |
+| `cadstudio_run_fea_convergence` | Run 3–8 allowlisted mesh levels and compare displacement/stress changes in the last two | No |
+| `cadstudio_review_advanced_geometry` | Validate neutral surface/mold plans and return pilot/blocked gate evidence | No |
+| `cadstudio_create_ocp_loft` | Create real ruled Loft STEP/BREP/STL from allowlisted closed sections and reopen B-Rep for verification | No |
+| `cadstudio_create_ocp_surface` | Create smooth Loft, straight/arc Sweep, closed-shell Knit, or open-surface Thicken from strict JSON with sampled continuity evidence | No |
+| `solidworks_health_check` | Check dependencies, SolidWorks detection, Motion type library, and optional live connection | No |
+| `solidworks_connect` | Connect to/start SolidWorks and return the active document summary | No |
+| `solidworks_new_document` | Create a part/assembly/drawing | Yes |
+| `solidworks_create_basic_part` | Create a box/cylinder part, optionally save and color the document | Yes |
+| `solidworks_open_document` | Open an existing SolidWorks document | Yes |
+| `solidworks_add_component` | Insert a part/subassembly into the active assembly and optionally fix it | Yes |
+| `solidworks_set_component_fixed` | Fix or float components matched by name keyword | Yes |
+| `solidworks_save_document` | Save or Save As the active document | Yes |
+| `solidworks_close_documents` | Close the active/all documents | Yes; unsaved changes may be discarded |
+| `solidworks_add_coincident_mate` | Add a coincident mate between specified planes/features of two components | Yes |
+| `solidworks_add_distance_mate` | Add a distance mate between specified planes/features of two components | Yes |
+| `solidworks_add_concentric_mate` | Add a concentric mate filtered by cylinder radius, optionally locking rotation | Yes |
+| `solidworks_set_appearance` | Set document or component appearance color | Yes |
+| `solidworks_export_active` | Export the active document as STEP/STL/IGES/Parasolid/PDF/DXF | Yes; writes files |
+| `solidworks_update_dimension` | Edit an exact named dimension and return before/after, rebuild, and save evidence | Yes |
+| `solidworks_set_custom_properties` | Write/read file-level or configuration-specific properties | Yes |
+| `solidworks_batch_export_files` | Batch multiple files/formats and verify this run's artifacts | Yes; writes files |
+| `solidworks_export_assembly_bom` | Export component/property BOM CSV with mandatory human review | Yes; writes files |
+| `solidworks_pack_and_go` | Package documents and references with native Pack and Go | Yes; writes files |
+| `solidworks_review_active` | Export BMP views and a JSON review report | Yes; writes files |
+| `solidworks_create_hole_feature` | Create blind/through/counterbore/countersink holes or obround slots and return parameter evidence | Yes |
+| `solidworks_inspect_hole_features` | Read B-Rep hole segments, compound holes, and slot ends; verify positions | No |
+| `solidworks_add_rotary_motor` | Create a Motion Study and constant-speed motor in the active assembly | Yes |
+| `solidworks_inspect_motion_studies` | Read studies, motor/force counts, and result freshness | No |
+| `solidworks_validate_motion_study` | Gate delivery on duration, type, motor count, result existence, and freshness | No |
 
-## 基础装配工具示例
+## Basic assembly examples
 
-创建圆柱零件：
+Create a cylindrical part:
 
 ```json
 {
@@ -151,7 +151,7 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
 }
 ```
 
-向活动装配体添加组件并固定：
+Insert and fix a component in the active assembly:
 
 ```json
 {
@@ -163,7 +163,7 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
 }
 ```
 
-添加保留旋转自由度的同心 Mate：
+Add a concentric mate preserving rotation:
 
 ```json
 {
@@ -177,7 +177,7 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
 }
 ```
 
-添加轴向距离 Mate：
+Add an axial distance mate:
 
 ```json
 {
@@ -189,11 +189,11 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
 }
 ```
 
-## Motion Study 示例
+## Motion Study example
 
-前提：活动文档是装配体，里面有一个静止轴/立柱组件和一个叶轮组件；叶轮的同心 Mate 未锁定旋转，且叶轮组件未固定。
+The active document must be an assembly containing a stationary shaft/post and an impeller. The impeller's concentric mate must not lock rotation, and the component must not be fixed.
 
-调用参数示例：
+Example arguments:
 
 ```json
 {
@@ -204,15 +204,15 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
   "rotor_radius_min_mm": 10.5,
   "rotor_radius_max_mm": 11.5,
   "rpm": 60,
-  "study_name": "叶轮_60RPM_循环转动",
-  "motor_name": "叶轮旋转马达_60RPM",
+  "study_name": "Impeller_60RPM_Cycle",
+  "motor_name": "ImpellerMotor_60RPM",
   "duration_seconds": 4,
   "calculate": true,
   "play": false
 }
 ```
 
-创建复杂沉孔：
+Create a compound counterbore:
 
 ```json
 {
@@ -223,15 +223,15 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
   "secondary_diameter_mm": 12,
   "secondary_depth_mm": 4,
   "plane_name": "Front Plane",
-  "feature_name": "H1_沉孔"
+  "feature_name": "H1_Counterbore"
 }
 ```
 
-验证 Motion Study：
+Validate the Motion Study:
 
 ```json
 {
-  "study_name": "叶轮_60RPM_循环转动",
+  "study_name": "Impeller_60RPM_Cycle",
   "expected_study_type": 1,
   "minimum_duration_seconds": 4,
   "minimum_motor_count": 1,
@@ -239,15 +239,15 @@ claude mcp add --scope user solidworks -- python C:\path\to\solidworks-automatio
 }
 ```
 
-## 设计原则
+## Design principles
 
-- 不开放任意 Python/VBA 执行工具，避免 MCP 客户端直接执行不受控脚本。
-- CAD Studio 无头/门禁工具使用 `cadstudio_` 前缀，SolidWorks 原生工具使用 `solidworks_` 前缀，避免与其他 MCP server 冲突。
-- 所有 COM 操作串行执行，降低 SolidWorks 桌面会话崩溃概率。
-- 错误返回包含建议动作，方便 LLM 自行纠错。
+- Do not expose arbitrary Python/VBA execution through MCP.
+- Use `cadstudio_` for headless/gate tools and `solidworks_` for native tools to avoid naming collisions with other servers.
+- Serialize COM operations to reduce desktop-session instability.
+- Include suggested next actions in errors so the agent can correct failures.
 
-## 已知限制
+## Known limits
 
-- MCP 已覆盖基础盒体/圆柱、复杂孔槽、添加组件、常用 Mate、固定/浮动、外观、导出、审查、旋转马达、Motion 结果门禁，以及 DFM/Routing/FEA/复杂几何的受控入口。
-- 受限封闭直纹 Loft 可生成并重开真实 STEP/BREP；平滑 Loft、扫描、自由曲面、G1/G2 和模具仍只开放结构化计划门禁。
-- SolidWorks Motion / Simulation 许可证差异可能影响计算能力；缺少合法加载项或授权时返回 `blocked`，不尝试绕过。
+- The inherited MCP surface covers boxes/cylinders, compound holes/slots, component insertion, common mates, fixed/floating states, appearances, export/review, rotational motors, Motion result gates, and controlled DFM/Routing/FEA/advanced-geometry entries.
+- The inherited conservative scope permits real restricted closed ruled-Loft STEP/BREP creation and reopening; smooth lofts, sweeps, freeform surfaces, G1/G2, and molds are otherwise described as structured-plan gates. Consult `capabilities.yaml` and the specific OCP tool contract for current restricted implementations.
+- Motion/Simulation license differences affect calculation. Missing valid add-ins or authorization return `blocked`; the server does not bypass licensing.
